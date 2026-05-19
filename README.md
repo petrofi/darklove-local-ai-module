@@ -15,8 +15,8 @@ Darklove Local AI Module aims to provide a privacy-first AI experience by runnin
 - Docker
 - GitHub Projects
 - Local-first AI architecture
-## Current Status
-Week 1: Project setup, documentation and architecture planning.
+## Project Goal
+The goal of this project is to analyze user emotional state and generate supportive motivational responses locally, without depending on cloud-based AI services.
 ## Roadmap
 - Week 1: Repository setup and documentation
 - Week 2: Basic .NET Web API
