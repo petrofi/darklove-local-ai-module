@@ -2,10 +2,7 @@
 Darklove Local AI Module is a graduation project focused on building a local AI-
  powered motivation and emotion analysis system.
 ## Project Goal
-Darklove Local AI Module - 1. Gun Calisma Plani Sayfa 5
-The goal of this project is to analyze user emotional state and generate
- supportive motivational responses locally, without depending on cloud-based AI
- services.
+The goal of this project is to analyze user emotional state and generate supportive motivational responses locally, without depending on cloud-based AI services.
 ## Why This Project Matters
 Many emotional support applications depend on cloud-based AI services. This can
  create privacy concerns when users share sensitive emotional text.
