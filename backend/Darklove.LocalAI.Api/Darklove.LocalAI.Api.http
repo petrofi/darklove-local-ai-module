@@ -4,3 +4,10 @@ GET {{Darklove.LocalAI.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+### Analyze sadness emotion
+POST http://localhost:5019/api/emotion/analyze
+Content-Type: application/json
+
+{
+  "userText": "Bugün kendimi çok yalnız ve yorgun hissediyorum."
+}
