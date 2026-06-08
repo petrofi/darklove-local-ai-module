@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="backend/Darklove.LocalAI.Api/Darklove.LocalAI.Api.csproj" />
+  <Project Path="tests/Darklove.LocalAI.Api.Tests/Darklove.LocalAI.Api.Tests.csproj" />
+</Solution>

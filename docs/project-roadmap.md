@@ -1,35 +1,44 @@
-# Project Roadmap
-## Week 1
-- Create GitHub repository
-- Add README
-- Create documentation structure
-- Define project architecture
-- Create GitHub project board
-- Research Microsoft Foundry Local
-## Week 2
-- Create .NET Web API project
-- Add health check endpoint
-- Create emotion analysis request/response models
-## Week 3
-- Add rule-based emotion analysis endpoint
-- Add basic motivation message generator
-- Add API documentation
-## Week 4
-- Start Python emotion analysis experiments
-- Create keyword-based emotion scoring
-- Prepare small test dataset
-## Month 2
-- Research Microsoft Foundry Local
-- Test local AI model execution
-- Compare C# and Python integration options
-## Month 3
-- Build first local AI prototype
-- Generate motivational response locally
-## Month 4
-- Connect local AI module with Darklove
-## Month 5
-- Testing, logging and improvements
-## Month 6
-- Final presentation
-- Documentation cleanup
-- Demo preparation
+# Proje Yol Haritası
+
+## Tamamlanan Sağlam MVP
+
+- [x] GitHub deposu ve dokümantasyon yapısı
+- [x] .NET 10 Minimal API
+- [x] Health check endpointi
+- [x] Kural tabanlı Türkçe duygu analizi
+- [x] Açıklanabilir skor ve eşleşen anahtar ifadeler
+- [x] `neutral` ve `mixed` sonuçları
+- [x] Kriz ifadesi kontrolü ve 112 yönlendirmesi
+- [x] ProblemDetails tabanlı doğrulama
+- [x] OpenAPI ve Swagger UI
+- [x] Birim ve API entegrasyon testleri
+- [x] GitHub Actions build/test iş akışı
+- [x] Türkçe teknik rapor ve demo notları
+
+## Sonraki Faz: Veri ve Ölçüm
+
+- [ ] Küçük, anonim ve etiketli Türkçe değerlendirme veri kümesi hazırlamak
+- [ ] Precision, recall ve F1 gibi ölçümleri tanımlamak
+- [ ] Yanlış pozitif ve yanlış negatif örneklerini raporlamak
+- [ ] Anahtar ifade listesini ölçüm sonuçlarına göre iyileştirmek
+
+## Sonraki Faz: Python Deneyleri
+
+- [ ] Aynı veri kümesinde Python tabanlı metin sınıflandırma deneyi yapmak
+- [ ] Deney ortamını tekrar üretilebilir hale getirmek
+- [ ] Kural tabanlı ve deneysel model sonuçlarını karşılaştırmak
+
+## Sonraki Faz: Microsoft Foundry Local
+
+- [ ] Uygun yerel model ve cihaz gereksinimlerini araştırmak
+- [ ] Foundry Local üzerinde ilk çıkarım prototipini hazırlamak
+- [ ] Model servisi için `IEmotionAnalysisService` uygulaması eklemek
+- [ ] Kural tabanlı servisi güvenli geri dönüş seçeneği olarak korumak
+- [ ] Gecikme, kaynak tüketimi ve doğruluk karşılaştırması yapmak
+
+## Son Teslim
+
+- [ ] Demo senaryolarını son kez doğrulamak
+- [ ] Ekran görüntüleri ve kısa demo videosu hazırlamak
+- [ ] Sunum slaytlarını teknik raporla uyumlu hale getirmek
+- [ ] Bilinen sınırlamaları ve etik uyarıları açıkça sunmak
