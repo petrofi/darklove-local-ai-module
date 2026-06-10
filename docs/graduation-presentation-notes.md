@@ -23,7 +23,7 @@ aşamasında test ve hata analizi yapmayı zorlaştırır.
 - Model kullanılamazsa açıklanabilir kural tabanlı fallback çalışır.
 - Sonuçta analiz yöntemi, model ve iki ayrı skor kaynağı gösterilir.
 - Riskli metin normal motivasyon akışından ayrılır.
-- API testlerle ve Swagger UI ile doğrulanır.
+- Sonuçlar Türkçe web demo ekranında gösterilir; API ayrıca testler ve Swagger UI ile doğrulanır.
 
 ## Dürüst Teknik Konumlandırma
 
@@ -38,6 +38,7 @@ eder.
 - ASP.NET Core Minimal API
 - Ollama ve Qwen3
 - JSON Schema structured output
+- Türkçe web demo ekranı
 - OpenAPI ve Swagger UI
 - xUnit ve WebApplicationFactory
 - GitHub Actions
@@ -46,13 +47,14 @@ eder.
 
 1. Problemi ve gizlilik gerekçesini anlat.
 2. Mimari diyagramı göster.
-3. Swagger UI'ı aç.
-4. Model status endpointinde `ready` durumunu göster.
+3. Kök adresteki Türkçe web demo ekranını aç.
+4. Ekranın üstündeki model durumunun `ready` olduğunu göster.
 5. Modelin kural listesinde olmayan bir metni sınıflandırmasını göster.
 6. Ollama'yı kapatıp `rule-based-fallback` davranışını göster.
 7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
-8. `dotnet test` sonucunda 28 testin geçtiğini göster.
-9. Foundry Local adaptörünü sonraki adım olarak anlat.
+8. Swagger UI ile API sözleşmesini kısaca göster.
+9. `dotnet test` sonucunda 31 testin geçtiğini göster.
+10. Foundry Local adaptörünü sonraki adım olarak anlat.
 
 ## Önerilen Demo Metinleri
 

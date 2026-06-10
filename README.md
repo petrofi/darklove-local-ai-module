@@ -23,8 +23,9 @@ otomatik olarak açıklanabilir kural tabanlı analize geri döner.
 - Kural skorlarını, eşleşen ifadeleri ve model skorlarını ayrı alanlarda döndürür.
 - Yalnızca loopback üzerindeki model endpointlerine izin verir.
 - Kullanıcı metnini saklamaz veya loglamaz.
+- Kurulum gerektirmeyen Türkçe web demo ekranı içerir.
 - ProblemDetails, health check, model status, OpenAPI ve Swagger UI içerir.
-- Model, fallback, güvenlik ve HTTP davranışlarını kapsayan 28 test içerir.
+- Model, fallback, güvenlik, web arayüzü ve HTTP davranışlarını kapsayan 31 test içerir.
 
 ## Teknolojiler
 
@@ -32,6 +33,7 @@ otomatik olarak açıklanabilir kural tabanlı analize geri döner.
 - Ollama yerel model çalışma zamanı
 - JSON Schema structured output
 - `IHttpClientFactory`
+- HTML, CSS ve JavaScript ile aynı API içinde sunulan demo arayüzü
 - OpenAPI ve Swagger UI
 - xUnit ve `WebApplicationFactory`
 - GitHub Actions
@@ -90,10 +92,16 @@ dotnet run --project backend/Darklove.LocalAI.Api --launch-profile http
 
 Uygulama başladıktan sonra:
 
+- Web demo: `http://localhost:5019`
 - Swagger UI: `http://localhost:5019/swagger`
 - Model durumu: `http://localhost:5019/api/model/status`
 - Health check: `http://localhost:5019/api/health`
 - OpenAPI: `http://localhost:5019/openapi/v1.json`
+
+Web demo ekranında bir örnek metin seçebilir veya en fazla 2.000 karakterlik
+kendi metnini yazıp **Metni analiz et** düğmesine basabilirsin. Ekran; bulunan
+duyguyu, güven değerini, analiz yöntemini, kural/model skorlarını, eşleşen
+ifadeleri ve güvenli kullanıcı mesajını gösterir.
 
 `/api/model/status` yanıtındaki durumlar:
 
@@ -176,7 +184,7 @@ aralığındaki duygu skorlarını gösterir.
 ## Proje Yapısı
 
 ```text
-backend/   API, hibrit analiz servisi, Ollama istemcisi ve güvenlik kuralları
+backend/   API, web demo, hibrit analiz servisi, Ollama istemcisi ve güvenlik kuralları
 tests/     Kural, model istemcisi, fallback ve HTTP entegrasyon testleri
 docs/      Mimari, yol haritası, günlük ve teknik rapor
 .github/   GitHub Actions CI iş akışı

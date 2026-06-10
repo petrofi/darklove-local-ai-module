@@ -8,7 +8,7 @@ Model hazır değilse mevcut kural tabanlı servis otomatik fallback sağlar.
 
 ```mermaid
 flowchart TD
-    A["İstemci / Swagger UI"] --> B["POST /api/emotion/analyze"]
+    A["Web demo / Swagger / API istemcisi"] --> B["POST /api/emotion/analyze"]
     B --> C["İstek doğrulama"]
     C --> D["RuleBasedEmotionAnalysisService"]
     D --> E{"Kriz ifadesi var mı?"}
@@ -30,6 +30,8 @@ flowchart TD
 
 ### Sunum Katmanı
 
+`wwwroot` içindeki Türkçe demo ekranı, model durumunu ve analiz sonuçlarını
+tarayıcıda gösterir. Ayrı bir frontend sunucusu veya derleme zinciri gerektirmez.
 `EmotionAnalysisEndpoints`, HTTP sözleşmesini ve doğrulamayı yönetir.
 `OpenSourceModelEndpoints`, Ollama ve seçilen modelin hazır olup olmadığını
 `GET /api/model/status` üzerinden gösterir.
@@ -69,6 +71,7 @@ tanımlar. Uzak endpointler doğrulama aşamasında reddedilir.
 - `scores` ve `modelScores` farklı anlamları korumak için ayrı alanlardır.
 - Model endpointi yalnızca loopback olabilir.
 - Hassas kullanıcı metni saklanmaz ve loglanmaz.
+- Demo arayüzü aynı origin üzerinden API'ye gider; ek CORS yapılandırması gerekmez.
 
 Ayrıntılı açıklama için [Türkçe Teknik Rapor](technical-report-tr.md) belgesine
 bakın.

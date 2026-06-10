@@ -19,6 +19,8 @@
 - [x] Hibrit model/kural fallback mimarisi
 - [x] Yerel model durum endpointi
 - [x] Kriz ifadelerinde modeli devre dışı bırakan güvenlik politikası
+- [x] Türkçe, erişilebilir ve mobil uyumlu web demo ekranı
+- [x] Demo ekranı ve statik dosyalar için HTTP entegrasyon testleri
 
 ## Sonraki Faz: Veri ve Ölçüm
 

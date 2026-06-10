@@ -53,6 +53,7 @@ Başarı ölçütü yalnızca modelden yanıt almak değil; model bulunmadığı
 - Kriz ifadesi kontrolü
 - ProblemDetails doğrulaması
 - Health check
+- Aynı uygulama içinde sunulan Türkçe web demo ekranı
 - OpenAPI ve Swagger UI
 - Birim ve entegrasyon testleri
 - GitHub Actions CI
@@ -68,7 +69,7 @@ Başarı ölçütü yalnızca modelden yanıt almak değil; model bulunmadığı
 - Veritabanı
 - Kullanıcı hesabı ve kimlik doğrulama
 - Kullanıcı metni geçmişi
-- Ayrı frontend uygulaması
+- Ayrı dağıtılan veya ayrı derlenen frontend uygulaması
 - Tıbbi tanı veya tedavi önerisi
 
 Bu sınırlar projenin eksik olduğu anlamına gelmez. Sağlam MVP'nin hangi problemi
@@ -84,7 +85,7 @@ için gereken altyapıyı az ek bağımlılıkla sağlar.
 
 ### ASP.NET Core Minimal API
 
-Projede iki ana endpoint vardır. Bu nedenle controller tabanlı daha ağır bir
+Projede küçük ve odaklı bir HTTP yüzeyi vardır. Bu nedenle controller tabanlı daha ağır bir
 yapı yerine Minimal API kullanılmıştır. Minimal API seçimi iş mantığının
 `Program.cs` içine yazılması anlamına gelmez. Endpoint yalnızca HTTP
 sorumluluklarını taşır, analiz ayrı servistedir.
@@ -122,6 +123,18 @@ ise jüri demosunda ve geliştirme sırasında endpointlerin tarayıcıdan
 çalıştırılmasını sağlar. Bilgi ifşasını azaltmak için Swagger UI yalnızca
 Development ortamında etkinleştirilmiştir.
 
+### Yerleşik Web Demo
+
+`wwwroot` altındaki HTML, CSS ve JavaScript dosyaları ASP.NET Core tarafından
+aynı uygulama üzerinden sunulur. Bu yaklaşım jüri demosu için ayrı bir Node.js
+projesi, paket yöneticisi veya ikinci sunucu gerektirmez. Tarayıcı doğrudan
+`/api/model/status` ve `/api/emotion/analyze` endpointlerini çağırır.
+
+Arayüz erişilebilir form etiketleri, klavye ile kullanılabilen hazır örnekler,
+mobil uyumlu yerleşim ve hareket azaltma tercihi içerir. Sonuç ekranda
+`analysisMethod` ve `fallbackReason` alanları da gösterildiği için model ile
+kural tabanlı geri dönüş birbirinden gizlenmez.
+
 ### xUnit ve WebApplicationFactory
 
 xUnit saf iş mantığını test eder. `WebApplicationFactory<Program>` uygulamayı
@@ -155,6 +168,7 @@ flowchart TD
 
 Temel tasarım ilkesi sorumluluk ayrımıdır:
 
+- `wwwroot` yalnızca sunum ve kullanıcı etkileşimini yönetir.
 - `Program.cs` uygulamayı kurar.
 - Endpoint HTTP isteğini yönetir.
 - Hibrit servis model ve fallback kararını üretir.
@@ -176,13 +190,26 @@ Uygulamanın başlangıç noktasıdır:
 1. OpenAPI servisini ekler.
 2. Exception handler ve ProblemDetails yapılandırmasını ekler.
 3. Health check altyapısını kaydeder.
-4. Analiz servisini dependency injection'a singleton olarak kaydeder.
+4. Kural servisini singleton, hibrit analiz servisini request scope içinde kaydeder.
 5. Development ortamında OpenAPI ve Swagger UI'ı açar.
 6. Ortama göre HSTS ve HTTPS yönlendirmesini ayarlar.
-7. Health ve emotion endpointlerini eşler.
+7. Varsayılan belge ve statik dosya middleware'ini etkinleştirir.
+8. Health, model status ve emotion endpointlerini eşler.
 
 Dosyanın sonunda bulunan `public partial class Program`, entegrasyon testlerinin
 uygulama giriş noktasını bulabilmesi için gereklidir.
+
+### `backend/Darklove.LocalAI.Api/wwwroot`
+
+API ile birlikte sunulan yerel demo ekranını içerir:
+
+- `index.html`: Formu, model durumunu, örnek metinleri ve sonuç bölgelerini tanımlar.
+- `styles.css`: Mobil uyumlu görünümü, odak stillerini ve kriz sonucu vurgusunu sağlar.
+- `app.js`: API isteklerini gönderir, karakter sayacını günceller ve güvenli biçimde
+  sonuçları DOM üzerinde gösterir.
+
+JavaScript kullanıcı veya model metnini HTML olarak eklemez; `textContent`
+kullanır. Böylece yanıt içeriğinin çalıştırılabilir işaretlemeye dönüşmesi önlenir.
 
 ### `Features/EmotionAnalysis/Contracts/EmotionAnalysisRequest.cs`
 
@@ -201,6 +228,10 @@ Analizin dışarıya açık sonucudur:
 - `RiskLevel`: `none` veya `high`
 - `NeedsSupportWarning`: Eski istemciler için boolean uyarı
 - `MotivationMessage`: Türkçe kullanıcı mesajı
+- `AnalysisMethod`: Açık model, kural, fallback veya kriz güvenlik yöntemini belirtir
+- `Model`: Kullanılan ya da denenmiş yerel modelin adı
+- `ModelScores`: Model kullanıldıysa 0-1 aralığındaki duygu skorları
+- `FallbackReason`: Model yerine kurallara dönülme nedenini sabit bir kodla açıklar
 
 ### `Features/EmotionAnalysis/Services/IEmotionAnalysisService.cs`
 
@@ -289,7 +320,7 @@ HTTPS yönlendirmesini varsayılan olarak kapatır.
 - `http`: `http://localhost:5019`
 - `https`: `https://localhost:7239`
 
-Her iki profil Swagger sayfasını açar. HTTPS profili yönlendirmeyi ortam
+Her iki profil kök adresteki web demo ekranını açar. HTTPS profili yönlendirmeyi ortam
 değişkeniyle tekrar etkinleştirir.
 
 ### `Darklove.LocalAI.Api.http`
@@ -615,8 +646,10 @@ Entegrasyon testleri şunları doğrular:
 - OpenAPI belgesinin erişilebilirliği
 - Swagger UI'ın Development ortamında erişilebilirliği
 - Model status endpointinin erişilebilirliği
+- Kök adresteki demo sayfasının erişilebilirliği
+- CSS ve JavaScript dosyalarının doğru içerik türü ve `nosniff` başlığıyla sunulması
 
-Toplam 28 test bulunmaktadır.
+Toplam 31 test bulunmaktadır.
 
 ## 15. Kurulum ve Çalıştırma
 
@@ -662,6 +695,12 @@ dotnet build Darklove.LocalAI.slnx
 dotnet run --project backend/Darklove.LocalAI.Api --launch-profile http
 ```
 
+Web demo:
+
+```text
+http://localhost:5019
+```
+
 Swagger:
 
 ```text
@@ -672,6 +711,12 @@ http://localhost:5019/swagger
 
 ```powershell
 dotnet run --project backend/Darklove.LocalAI.Api --launch-profile https
+```
+
+Web demo:
+
+```text
+https://localhost:7239
 ```
 
 Swagger:
@@ -688,15 +733,15 @@ dotnet test Darklove.LocalAI.slnx
 
 ## 16. Jüri Demo Akışı
 
-1. Swagger UI'ı aç.
-2. `GET /api/health` ile API'nin çalıştığını göster.
-3. `GET /api/model/status` ile modelin `ready` olduğunu göster.
-4. Kural listesinde bulunmayan bir metnin modelle sınıflandırılmasını göster.
-5. `analysisMethod`, `modelScores` ve model adını açıkla.
-6. Ollama'yı durdurup `rule-based-fallback` davranışını göster.
-7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+1. Kök adresteki Türkçe web demo ekranını aç.
+2. Ekranın model durumunu ve gizlilik açıklamasını göster.
+3. Hazır örneklerden normal bir metni analiz et.
+4. `analysisMethod`, `modelScores` ve model adını açıkla.
+5. Ollama'yı durdurup `rule-based-fallback` davranışını göster.
+6. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+7. Swagger UI'da `GET /api/health` ve API sözleşmesini göster.
 8. Boş metin göndererek ProblemDetails yanıtını göster.
-9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve 28 testi göster.
+9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve 31 testi göster.
 10. Foundry Local için aynı istemci arayüzüne ikinci adaptör eklenebileceğini
     anlat.
 

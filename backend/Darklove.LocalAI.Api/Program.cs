@@ -94,6 +94,16 @@ if (app.Configuration.GetValue("HttpsRedirection:Enabled", true))
     app.UseHttpsRedirection();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.XContentTypeOptions = "nosniff";
+        context.Context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    }
+});
+
 app.MapHealthEndpoint();
 app.MapOpenSourceModelEndpoints();
 app.MapEmotionAnalysisEndpoints();

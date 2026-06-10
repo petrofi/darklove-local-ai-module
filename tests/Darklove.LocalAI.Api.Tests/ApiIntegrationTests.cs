@@ -30,6 +30,31 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
     }
 
     [Fact]
+    public async Task DemoPage_IsAvailableAtRoot()
+    {
+        var response = await _client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("Darklove Local AI", html);
+        Assert.Contains("analysis-form", html);
+        Assert.Contains("/app.js", html);
+    }
+
+    [Theory]
+    [InlineData("/styles.css", "text/css")]
+    [InlineData("/app.js", "text/javascript")]
+    public async Task DemoAssets_AreAvailable(string path, string expectedMediaType)
+    {
+        var response = await _client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(expectedMediaType, response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+    }
+
+    [Fact]
     public async Task AnalyzeEndpoint_ReturnsExplainableResult()
     {
         var response = await _client.PostAsJsonAsync(

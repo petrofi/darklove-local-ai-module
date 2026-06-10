@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Türkçe metinler için yerel ve gizlilik odaklı duygu analizi.">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
+  <title>Darklove Local AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Darklove Local AI ana sayfa">
+        <span class="brand-mark" aria-hidden="true">DL</span>
+        <span>
+          <strong>Darklove</strong>
+          <small>Local AI Module</small>
+        </span>
+      </a>
+
+      <nav class="header-actions" aria-label="Proje bağlantıları">
+        <a href="/swagger">API</a>
+        <div id="model-status" class="status-pill status-loading" role="status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="model-status-text">Model kontrol ediliyor</span>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">Gizlilik odaklı yerel analiz</p>
+        <h1 id="page-title">Duygularını yerel yapay zekâ ile analiz et.</h1>
+        <p class="hero-copy">
+          Metnin cihazından ayrılmaz. Açık ağırlıklı model hazır değilse sistem
+          güvenli ve açıklanabilir kural tabanlı analize otomatik geçer.
+        </p>
+        <div class="privacy-note">
+          <span class="privacy-icon" aria-hidden="true">01</span>
+          <span>Metin saklanmaz, veritabanına yazılmaz ve uygulama loglarına eklenmez.</span>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Duygu analiz çalışma alanı">
+        <article class="panel input-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Girdi</p>
+              <h2>Şu an nasıl hissediyorsun?</h2>
+            </div>
+            <span id="character-count" class="character-count">0 / 2000</span>
+          </div>
+
+          <form id="analysis-form" novalidate>
+            <label class="sr-only" for="user-text">Analiz edilecek Türkçe metin</label>
+            <textarea
+              id="user-text"
+              name="userText"
+              maxlength="2000"
+              rows="8"
+              required
+              placeholder="Örneğin: Son günlerde kendimi biraz kaygılı ve yorgun hissediyorum."></textarea>
+
+            <div class="form-actions">
+              <button id="analyze-button" class="primary-button" type="submit">
+                <span class="button-label">Metni analiz et</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+              </button>
+              <button id="clear-button" class="secondary-button" type="button">
+                Temizle
+              </button>
+            </div>
+          </form>
+
+          <div class="examples">
+            <p>Hızlı örnekler</p>
+            <div class="example-list">
+              <button type="button" data-example="Bugün kendimi yalnız ve yorgun hissediyorum.">
+                Üzüntü
+              </button>
+              <button type="button" data-example="Yarınki sunum için çok endişeliyim ve gerginim.">
+                Kaygı
+              </button>
+              <button type="button" data-example="Başaracağımı biliyorum, umutluyum ve devam edeceğim.">
+                Umut
+              </button>
+              <button type="button" data-example="Hem yalnızım hem de sinirliyim.">
+                Karma
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article id="result-panel" class="panel result-panel" aria-live="polite">
+          <div id="empty-state" class="empty-state">
+            <div class="empty-visual" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <p class="section-label">Sonuç</p>
+            <h2>Analiz sonucu burada görünecek.</h2>
+            <p>
+              Duygu sınıfı, güven değeri, kullanılan yöntem ve açıklanabilir
+              skorlar tek ekranda gösterilir.
+            </p>
+          </div>
+
+          <div id="loading-state" class="loading-state" hidden>
+            <div class="loader" aria-hidden="true"></div>
+            <h2>Metin yerel olarak analiz ediliyor.</h2>
+            <p>İlk model çağrısı, modelin belleğe yüklenmesi nedeniyle biraz sürebilir.</p>
+          </div>
+
+          <div id="result-content" hidden>
+            <div class="result-header">
+              <div>
+                <p class="section-label">Baskın duygu</p>
+                <h2 id="emotion-name">Nötr</h2>
+              </div>
+              <div class="confidence-block">
+                <strong id="confidence-value">%0</strong>
+                <span>güven</span>
+              </div>
+            </div>
+
+            <div id="support-message" class="support-message"></div>
+
+            <dl class="result-meta">
+              <div>
+                <dt>Analiz yöntemi</dt>
+                <dd id="analysis-method">Kural tabanlı</dd>
+              </div>
+              <div>
+                <dt>Model</dt>
+                <dd id="model-name">Kullanılmadı</dd>
+              </div>
+            </dl>
+
+            <div id="fallback-note" class="fallback-note" hidden></div>
+
+            <section class="score-section" aria-labelledby="score-title">
+              <div class="score-heading">
+                <h3 id="score-title">Duygu dağılımı</h3>
+                <span id="score-source">Model skorları</span>
+              </div>
+              <div id="score-list" class="score-list"></div>
+            </section>
+
+            <section id="keyword-section" class="keyword-section" hidden>
+              <h3>Eşleşen ifadeler</h3>
+              <div id="keyword-list" class="keyword-list"></div>
+            </section>
+          </div>
+
+          <div id="error-state" class="error-state" hidden>
+            <p class="section-label">İstek tamamlanamadı</p>
+            <h2>Bir sorun oluştu.</h2>
+            <p id="error-message">Lütfen tekrar deneyin.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="system-section" aria-labelledby="system-title">
+        <div>
+          <p class="section-label">Sistem durumu</p>
+          <h2 id="system-title">Yerel model ve güvenli fallback birlikte çalışır.</h2>
+        </div>
+        <div class="system-grid">
+          <article>
+            <span class="system-number">01</span>
+            <h3>Yerel model</h3>
+            <p>Ollama üzerindeki açık ağırlıklı model metni cihazda sınıflandırır.</p>
+          </article>
+          <article>
+            <span class="system-number">02</span>
+            <h3>Güvenli fallback</h3>
+            <p>Model hazır değilse API kesilmez; açıklanabilir kurallar devreye girer.</p>
+          </article>
+          <article>
+            <span class="system-number">03</span>
+            <h3>Kriz politikası</h3>
+            <p>Riskli ifadeler modele bırakılmaz ve doğrudan güvenli desteğe yönlendirilir.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Microsoft Yaz Okulu projesi · .NET 10 · Ollama · Açık ağırlıklı modeller</p>
+      <p>Bu uygulama tıbbi teşhis aracı değildir.</p>
+    </footer>
+  </div>
+</body>
+</html>

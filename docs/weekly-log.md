@@ -90,6 +90,25 @@ yapabilecek hale getirmek.
 - Sahte Ollama HTTP yanıtlarıyla model entegrasyon testleri yazıldı.
 - Toplam 28 test başarıyla çalıştırıldı.
 
+## 6. Hafta: Yerel Web Demo
+
+### Hedef
+
+API sözleşmesini değiştirmeden, jüri sunumunda teknik olmayan kişilerin de
+kullanabileceği sade bir demo ekranı hazırlamak.
+
+### Tamamlananlar
+
+- `wwwroot` altında Türkçe, mobil uyumlu ve erişilebilir analiz ekranı eklendi.
+- Model çalışma zamanı durumu sayfa açılışında görünür hale getirildi.
+- Duygu, güven, analiz yöntemi, skorlar ve eşleşen ifadeler görselleştirildi.
+- Kriz sonucu sıradan analizden farklı ve dikkat çekici biçimde gösterildi.
+- Hazır demo metinleri ve 2.000 karakter sayacı eklendi.
+- Statik dosyalara `nosniff` ve `no-referrer` güvenlik başlıkları eklendi.
+- Uygulama profilleri Swagger yerine web demonun kök adresini açacak şekilde düzenlendi.
+- Kök sayfa ve statik dosyalar için entegrasyon testleri eklendi.
+- Toplam 31 test başarıyla çalıştırıldı.
+
 ## Sonraki Adım
 
 Gerçek cihaz üzerinde farklı model boyutlarının hız ve doğruluk ölçümünü yapmak,
