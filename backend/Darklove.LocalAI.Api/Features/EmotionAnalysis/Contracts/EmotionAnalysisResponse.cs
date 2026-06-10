@@ -7,4 +7,8 @@ public sealed record EmotionAnalysisResponse(
     IReadOnlyDictionary<string, IReadOnlyList<string>> MatchedKeywords,
     string RiskLevel,
     bool NeedsSupportWarning,
-    string MotivationMessage);
+    string MotivationMessage,
+    string AnalysisMethod,
+    string? Model = null,
+    IReadOnlyDictionary<string, double>? ModelScores = null,
+    string? FallbackReason = null);

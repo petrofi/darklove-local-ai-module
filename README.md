@@ -4,33 +4,82 @@ Darklove Local AI Module, Microsoft Yaz Okulu kapsamında geliştirilen, Türkç
 metinlerde duygusal işaretleri yerel olarak analiz eden gizlilik odaklı bir
 .NET 10 Web API projesidir.
 
-> Bu sürüm bir makine öğrenmesi modeli değildir. Açıklanabilir ve test
-> edilebilir bir kural tabanlı MVP'dir. Tıbbi teşhis koymaz ve profesyonel
-> psikolojik desteğin yerine geçmez.
+Uygulama, Ollama üzerinden cihazda çalışan açık ağırlıklı modelleri kullanır.
+Varsayılan model `qwen3:4b` modelidir. Ollama veya model kullanılamıyorsa sistem
+otomatik olarak açıklanabilir kural tabanlı analize geri döner.
+
+> Proje tıbbi teşhis koymaz ve profesyonel psikolojik desteğin yerine geçmez.
+> Kriz ifadeleri yapay zekâ modeline bırakılmaz; deterministik güvenlik
+> kurallarıyla ele alınır.
 
 ## Özellikler
 
-- `sadness`, `anxiety`, `hope` ve `anger` duygu işaretlerini analiz eder.
-- Eşit en yüksek skorlarda `mixed`, eşleşme yoksa `neutral` döndürür.
-- Türkçe büyük/küçük harf ve Unicode normalizasyonunu destekler.
-- Alt metin yerine tam kelime ve ifade eşleşmesi kullanır.
-- Aynı kural metinde tekrar edilse bile yalnızca bir puan verir.
-- Skorları ve eşleşen anahtar ifadeleri açıklanabilir sonuç olarak döndürür.
-- Kriz ifadelerini ayrı değerlendirir ve güvenli destek mesajı üretir.
-- Boş veya 2.000 karakteri aşan metinleri `ProblemDetails` ile reddeder.
-- Health check, OpenAPI, Swagger UI, birim testleri ve API testleri içerir.
+- Ollama üzerinde Qwen, Mistral ve benzeri yerel modellerle çalışabilir.
+- Model yanıtını JSON şemasıyla sınırlar ve uygulama tarafında doğrular.
+- Model kapalıysa veya hata verirse kural tabanlı fallback kullanır.
+- Kriz ifadelerinde modeli çağırmadan güvenli destek ve `112` yönlendirmesi yapar.
+- `sadness`, `anxiety`, `hope`, `anger`, `neutral` ve `mixed` sonuçlarını destekler.
+- Hangi analiz yönteminin ve modelin kullanıldığını API yanıtında gösterir.
+- Kural skorlarını, eşleşen ifadeleri ve model skorlarını ayrı alanlarda döndürür.
+- Yalnızca loopback üzerindeki model endpointlerine izin verir.
 - Kullanıcı metnini saklamaz veya loglamaz.
+- ProblemDetails, health check, model status, OpenAPI ve Swagger UI içerir.
+- Model, fallback, güvenlik ve HTTP davranışlarını kapsayan 28 test içerir.
 
 ## Teknolojiler
 
 - .NET 10 ve ASP.NET Core Minimal API
-- Microsoft.AspNetCore.OpenApi
-- Swagger UI
-- xUnit
-- Microsoft.AspNetCore.Mvc.Testing
+- Ollama yerel model çalışma zamanı
+- JSON Schema structured output
+- `IHttpClientFactory`
+- OpenAPI ve Swagger UI
+- xUnit ve `WebApplicationFactory`
 - GitHub Actions
 
-## Çalıştırma
+## Açık Model Kurulumu
+
+1. [Ollama'yı indirip kur](https://ollama.com/download).
+2. Terminalde varsayılan modeli indir:
+
+```powershell
+ollama pull qwen3:4b
+```
+
+3. Ollama otomatik başlamadıysa çalıştır:
+
+```powershell
+ollama serve
+```
+
+4. Modelin hazır olduğunu kontrol et:
+
+```powershell
+ollama list
+```
+
+Model seçimi `appsettings.json` içindeki `LocalModel` bölümünden yapılır:
+
+```json
+{
+  "LocalModel": {
+    "Enabled": true,
+    "Provider": "ollama",
+    "Endpoint": "http://localhost:11434",
+    "Model": "qwen3:4b",
+    "TimeoutSeconds": 90
+  }
+}
+```
+
+Başka bir Ollama modeli kullanmak için yalnızca model adını değiştir:
+
+```powershell
+$env:LocalModel__Model = "qwen3:1.7b"
+```
+
+Kullanılacak modelin lisansını proje gereksinimlerine göre ayrıca kontrol et.
+
+## API'yi Çalıştırma
 
 Gereksinim: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 
@@ -42,14 +91,16 @@ dotnet run --project backend/Darklove.LocalAI.Api --launch-profile http
 Uygulama başladıktan sonra:
 
 - Swagger UI: `http://localhost:5019/swagger`
-- OpenAPI belgesi: `http://localhost:5019/openapi/v1.json`
+- Model durumu: `http://localhost:5019/api/model/status`
 - Health check: `http://localhost:5019/api/health`
+- OpenAPI: `http://localhost:5019/openapi/v1.json`
 
-HTTPS profiliyle çalıştırmak için:
+`/api/model/status` yanıtındaki durumlar:
 
-```powershell
-dotnet run --project backend/Darklove.LocalAI.Api --launch-profile https
-```
+- `ready`: Ollama ve seçilen model hazır.
+- `model-not-found`: Ollama çalışıyor fakat model indirilmemiş.
+- `runtime-unavailable`: Ollama çalışmıyor veya ulaşılamıyor.
+- `disabled`: Model kullanımı yapılandırmada kapalı.
 
 ## Test
 
@@ -58,8 +109,9 @@ dotnet build Darklove.LocalAI.slnx
 dotnet test Darklove.LocalAI.slnx
 ```
 
-Test paketi; duygu sonuçlarını, Türkçe karakterleri, skor formülünü, kriz
-yanıtını, doğrulamayı, OpenAPI belgesini ve Swagger UI'ı kapsar.
+Testler gerçek bir model indirmeden sahte Ollama HTTP yanıtlarıyla model
+sözleşmesini doğrular. Gerçek model testi için Ollama ve seçilen model ayrıca
+çalıştırılmalıdır.
 
 ## API Örneği
 
@@ -67,40 +119,65 @@ yanıtını, doğrulamayı, OpenAPI belgesini ve Swagger UI'ı kapsar.
 
 ```json
 {
-  "userText": "Bugün kendimi yalnız ve yorgun hissediyorum."
+  "userText": "İçimde ağır bir hüzün var."
 }
 ```
+
+Model kullanıldığında örnek yanıt:
 
 ```json
 {
   "detectedEmotion": "sadness",
-  "confidence": 0.9,
+  "confidence": 0.86,
   "scores": {
-    "sadness": 2,
+    "sadness": 0,
     "anxiety": 0,
     "hope": 0,
     "anger": 0
   },
-  "matchedKeywords": {
-    "sadness": [
-      "yalnız",
-      "yorgun"
-    ]
-  },
+  "matchedKeywords": {},
   "riskLevel": "none",
   "needsSupportWarning": false,
-  "motivationMessage": "Bugün zor geçiyor olabilir..."
+  "motivationMessage": "Bugün zor geçiyor olabilir...",
+  "analysisMethod": "open-source-model",
+  "model": "qwen3:4b",
+  "modelScores": {
+    "sadness": 0.86,
+    "anxiety": 0.08,
+    "hope": 0.02,
+    "anger": 0.01,
+    "neutral": 0.03
+  }
 }
 ```
 
-Makine tarafından kullanılan duygu ve risk kodları İngilizce, kullanıcıya
-gösterilen mesajlar Türkçedir.
+Fallback kullanılırsa:
+
+```json
+{
+  "analysisMethod": "rule-based-fallback",
+  "model": "qwen3:4b",
+  "fallbackReason": "model-unavailable"
+}
+```
+
+`scores` mevcut kural eşleşme sayılarını, `modelScores` ise modelin 0-1
+aralığındaki duygu skorlarını gösterir.
+
+## Güvenlik Yaklaşımı
+
+- Model endpointi yalnızca `localhost`, `127.0.0.1` veya `::1` olabilir.
+- Kullanıcı metni buluta gönderilmez.
+- Kullanıcı metni uygulama loglarına yazılmaz.
+- Modelden motivasyon veya kriz tavsiyesi alınmaz.
+- Model yalnızca yapılandırılmış duygu sınıflandırması üretir.
+- Kriz tespiti ve kullanıcı mesajları uygulama kodunda kalır.
 
 ## Proje Yapısı
 
 ```text
-backend/   ASP.NET Core API ve analiz servisi
-tests/     Birim ve HTTP entegrasyon testleri
+backend/   API, hibrit analiz servisi, Ollama istemcisi ve güvenlik kuralları
+tests/     Kural, model istemcisi, fallback ve HTTP entegrasyon testleri
 docs/      Mimari, yol haritası, günlük ve teknik rapor
 .github/   GitHub Actions CI iş akışı
 ```
@@ -110,11 +187,7 @@ Projenin neden ve nasıl geliştirildiğini anlatan ayrıntılı belge:
 
 ## Sonraki Aşamalar
 
-- Etiketli Türkçe test veri kümesi hazırlamak
-- Kural tabanlı sonuçlar için doğruluk ölçümü yapmak
-- Python deneyleri geliştirmek
-- Microsoft Foundry Local ile gerçek yerel model prototipi oluşturmak
-- Kural tabanlı ve model tabanlı sonuçları karşılaştırmak
-
-Bu maddeler mevcut sağlam MVP'nin dışında, sonraki araştırma ve geliştirme
-fazlarıdır.
+- Etiketli Türkçe değerlendirme veri kümesi hazırlamak
+- Qwen model boyutlarını doğruluk ve hız açısından karşılaştırmak
+- Microsoft Foundry Local için ikinci bir model adaptörü eklemek
+- Kural ve model sonuçlarını precision, recall ve F1 ile ölçmek

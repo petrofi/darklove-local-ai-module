@@ -5,7 +5,7 @@ using Darklove.LocalAI.Api.Features.EmotionAnalysis.Contracts;
 
 namespace Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
 
-public sealed class RuleBasedEmotionAnalysisService : IEmotionAnalysisService
+public sealed class RuleBasedEmotionAnalysisService : IRuleBasedEmotionAnalysisService
 {
     private const string NoRisk = "none";
     private const string HighRisk = "high";
@@ -62,20 +62,6 @@ public sealed class RuleBasedEmotionAnalysisService : IEmotionAnalysisService
         "ölmek istiyorum",
         "canıma kıymak istiyorum");
 
-    private static readonly IReadOnlyDictionary<string, string> MotivationMessages =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["sadness"] = "Bugün zor geçiyor olabilir. Küçük bir mola verip güvendiğin biriyle konuşmak ve kendine nazik davranmak iyi gelebilir.",
-            ["anxiety"] = "Şu an kaygılı hissetmen anlaşılır. Yavaşça nefes alıp çözebileceğin en küçük adıma odaklanmayı deneyebilirsin.",
-            ["hope"] = "İçindeki umut değerli. Küçük ve gerçekçi adımlarla ilerlemeye devam edebilirsin.",
-            ["anger"] = "Öfkeni fark etmen önemli. Tepki vermeden önce kısa bir ara vermek ve sakinleşmek için kendine alan açmak iyi gelebilir.",
-            ["mixed"] = "Birden fazla duyguyu aynı anda yaşıyor olabilirsin. Duygularını tek tek adlandırıp şu an en çok neye ihtiyaç duyduğunu düşünmeyi deneyebilirsin.",
-            ["neutral"] = "Belirgin bir duygu eşleşmesi bulunamadı. Nasıl hissettiğini biraz daha ayrıntılı anlatmayı deneyebilirsin."
-        };
-
-    private const string CrisisSupportMessage =
-        "Yazdıkların acil desteğe ihtiyaç duyabileceğini gösteriyor. Lütfen şu anda yalnız kalma; güvendiğin bir kişiye hemen ulaş ve profesyonel destek iste. Kendine zarar verme tehlikesi varsa veya hayati bir acil durum yaşıyorsan Türkiye'de 112 Acil Çağrı Merkezi'ni ara.";
-
     public EmotionAnalysisResponse Analyze(string userText)
     {
         var normalizedText = Normalize(userText);
@@ -103,8 +89,8 @@ public sealed class RuleBasedEmotionAnalysisService : IEmotionAnalysisService
         var hasCrisisSignal = CrisisRules.Any(rule => rule.Pattern.IsMatch(normalizedText));
         var riskLevel = hasCrisisSignal ? HighRisk : NoRisk;
         var message = hasCrisisSignal
-            ? CrisisSupportMessage
-            : MotivationMessages[detectedEmotion];
+            ? EmotionResponsePolicy.CrisisSupportMessage
+            : EmotionResponsePolicy.GetMotivationMessage(detectedEmotion);
 
         return new EmotionAnalysisResponse(
             detectedEmotion,
@@ -113,7 +99,8 @@ public sealed class RuleBasedEmotionAnalysisService : IEmotionAnalysisService
             matchedKeywords,
             riskLevel,
             hasCrisisSignal,
-            message);
+            message,
+            hasCrisisSignal ? "rule-based-safety" : "rule-based");
     }
 
     private static string DetectEmotion(IReadOnlyDictionary<string, int> scores)

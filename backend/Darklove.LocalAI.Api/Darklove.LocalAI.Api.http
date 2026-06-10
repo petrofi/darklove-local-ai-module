@@ -5,6 +5,11 @@ GET {{Darklove.LocalAI.Api_HostAddress}}/api/health
 Accept: application/json
 
 ###
+### Local open model status
+GET {{Darklove.LocalAI.Api_HostAddress}}/api/model/status
+Accept: application/json
+
+###
 ### Analyze sadness emotion
 POST {{Darklove.LocalAI.Api_HostAddress}}/api/emotion/analyze
 Content-Type: application/json

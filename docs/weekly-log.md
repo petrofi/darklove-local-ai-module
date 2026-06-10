@@ -69,7 +69,28 @@ açıklanabilir bir MVP haline getirmek.
 - README, mimari, yol haritası ve sunum notları güncellendi.
 - Ayrıntılı Türkçe teknik rapor hazırlandı.
 
+## 5. Hafta: Açık Model Entegrasyonu
+
+### Hedef
+
+Projeyi yerelde çalışan açık ağırlıklı modellerle gerçek sınıflandırma
+yapabilecek hale getirmek.
+
+### Tamamlananlar
+
+- Ollama `/api/chat` entegrasyonu eklendi.
+- Varsayılan model `qwen3:4b` olarak yapılandırıldı.
+- JSON Schema structured output kullanıldı.
+- Model yanıtı duygu adları ve 0-1 skor aralıklarıyla doğrulandı.
+- Model çalışmadığında otomatik kural tabanlı fallback eklendi.
+- Kriz metinlerinde modele hiç gidilmemesi sağlandı.
+- Model endpointi güvenlik nedeniyle loopback ile sınırlandı.
+- `GET /api/model/status` endpointi eklendi.
+- API yanıtına analiz yöntemi, model, model skorları ve fallback nedeni eklendi.
+- Sahte Ollama HTTP yanıtlarıyla model entegrasyon testleri yazıldı.
+- Toplam 28 test başarıyla çalıştırıldı.
+
 ## Sonraki Adım
 
-Etiketli bir Türkçe değerlendirme veri kümesiyle kural tabanlı yaklaşımın
-ölçülmesi ve ardından Microsoft Foundry Local prototipine geçilmesi.
+Gerçek cihaz üzerinde farklı model boyutlarının hız ve doğruluk ölçümünü yapmak,
+ardından Microsoft Foundry Local için ikinci bir adaptör eklemek.

@@ -43,6 +43,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
         Assert.Equal(2, result.Scores["sadness"]);
         Assert.Equal("none", result.RiskLevel);
         Assert.False(result.NeedsSupportWarning);
+        Assert.Equal("rule-based", result.AnalysisMethod);
     }
 
     [Fact]
@@ -129,6 +130,18 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
     }
 
     [Fact]
+    public async Task ModelStatusEndpoint_ReturnsDisabled_WhenModelIsDisabledForTests()
+    {
+        var response = await _client.GetAsync("/api/model/status");
+        var document = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("disabled", document.RootElement.GetProperty("status").GetString());
+        Assert.False(document.RootElement.GetProperty("runtimeAvailable").GetBoolean());
+    }
+
+    [Fact]
     public async Task SwaggerUi_IsAvailableInDevelopment()
     {
         var response = await _client.GetAsync("/swagger/index.html");
@@ -145,5 +158,6 @@ public sealed class DarkloveApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("HttpsRedirection:Enabled", "false");
+        builder.UseSetting("LocalModel:Enabled", "false");
     }
 }

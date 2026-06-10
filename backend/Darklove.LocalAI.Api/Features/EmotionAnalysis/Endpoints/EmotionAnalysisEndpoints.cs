@@ -28,9 +28,10 @@ public static class EmotionAnalysisEndpoints
         return endpoints;
     }
 
-    private static Results<Ok<EmotionAnalysisResponse>, ValidationProblem> Analyze(
+    private static async Task<Results<Ok<EmotionAnalysisResponse>, ValidationProblem>> Analyze(
         EmotionAnalysisRequest request,
-        IEmotionAnalysisService emotionAnalysisService)
+        IEmotionAnalysisService emotionAnalysisService,
+        CancellationToken cancellationToken)
     {
         var validationErrors = Validate(request);
 
@@ -42,7 +43,11 @@ public static class EmotionAnalysisEndpoints
                 detail: "Lütfen kullanıcı metnini kontrol edip tekrar deneyin.");
         }
 
-        return TypedResults.Ok(emotionAnalysisService.Analyze(request.UserText!));
+        var response = await emotionAnalysisService.AnalyzeAsync(
+            request.UserText!,
+            cancellationToken);
+
+        return TypedResults.Ok(response);
     }
 
     private static Dictionary<string, string[]> Validate(EmotionAnalysisRequest request)

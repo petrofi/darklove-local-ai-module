@@ -4,5 +4,7 @@ namespace Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
 
 public interface IEmotionAnalysisService
 {
-    EmotionAnalysisResponse Analyze(string userText);
+    Task<EmotionAnalysisResponse> AnalyzeAsync(
+        string userText,
+        CancellationToken cancellationToken = default);
 }

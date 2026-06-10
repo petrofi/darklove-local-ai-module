@@ -6,8 +6,8 @@ Darklove Local AI Module
 
 ## Tek Cümlelik Tanım
 
-Türkçe duygusal metinleri cihaz üzerinde, açıklanabilir kurallarla analiz eden
-ve riskli ifadelerde güvenli destek yönlendirmesi yapan .NET 10 Web API.
+Türkçe duygusal metinleri açık ağırlıklı yerel model ve güvenli kural tabanlı
+fallback ile analiz eden .NET 10 Web API.
 
 ## Problem
 
@@ -19,21 +19,25 @@ aşamasında test ve hata analizi yapmayı zorlaştırır.
 ## Çözüm
 
 - Metin yerel API içinde işlenir.
-- Açıklanabilir kural tabanlı analiz kullanılır.
-- Sonuçta duygu, skorlar ve eşleşen ifadeler gösterilir.
+- Ollama üzerinde çalışan açık ağırlıklı model kullanılır.
+- Model kullanılamazsa açıklanabilir kural tabanlı fallback çalışır.
+- Sonuçta analiz yöntemi, model ve iki ayrı skor kaynağı gösterilir.
 - Riskli metin normal motivasyon akışından ayrılır.
 - API testlerle ve Swagger UI ile doğrulanır.
 
 ## Dürüst Teknik Konumlandırma
 
-Bu sürüm gerçek bir yapay zekâ veya makine öğrenmesi modeli değildir. Sağlam ve
-ölçülebilir bir temel MVP'dir. Gelecek fazda Microsoft Foundry Local
-entegrasyonunun karşılaştırma zemini olarak kullanılacaktır.
+Bu sürüm Ollama üzerinde gerçek bir yerel dil modeli çalıştırabilir. Ancak model
+tek güvenlik kaynağı değildir: kriz tespiti ve kullanıcı mesajları deterministik
+kodda kalır. Ollama kapalıysa sistem kural tabanlı fallback ile çalışmaya devam
+eder.
 
 ## Kullanılan Teknolojiler
 
 - C# ve .NET 10
 - ASP.NET Core Minimal API
+- Ollama ve Qwen3
+- JSON Schema structured output
 - OpenAPI ve Swagger UI
 - xUnit ve WebApplicationFactory
 - GitHub Actions
@@ -43,12 +47,12 @@ entegrasyonunun karşılaştırma zemini olarak kullanılacaktır.
 1. Problemi ve gizlilik gerekçesini anlat.
 2. Mimari diyagramı göster.
 3. Swagger UI'ı aç.
-4. Normal üzüntü örneğini gönder; skorları ve anahtar ifadeleri göster.
-5. `Sinir sistemi hakkında okuyorum` örneğinin neden anger olmadığını göster.
-6. Eşit sadness ve anger örneğinde `mixed` sonucunu göster.
-7. Kriz örneğinde güvenli mesajı ve 112 yönlendirmesini göster.
-8. `dotnet test` sonucunda 20 testin geçtiğini göster.
-9. Sınırlamaları ve Foundry Local sonraki adımını anlat.
+4. Model status endpointinde `ready` durumunu göster.
+5. Modelin kural listesinde olmayan bir metni sınıflandırmasını göster.
+6. Ollama'yı kapatıp `rule-based-fallback` davranışını göster.
+7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+8. `dotnet test` sonucunda 28 testin geçtiğini göster.
+9. Foundry Local adaptörünü sonraki adım olarak anlat.
 
 ## Önerilen Demo Metinleri
 
@@ -83,15 +87,16 @@ Beklenen: `riskLevel=high`, profesyonel destek ve 112 yönlendirmesi.
 API yüzeyi küçük olduğu için daha az altyapı koduyla açık ve test edilebilir
 endpointler oluşturmayı sağlar.
 
-### Neden doğrudan yapay zekâ modeli kullanılmadı?
+### Hangi model kullanılıyor?
 
-Önce veri akışı, güvenlik, test, açıklanabilirlik ve API sözleşmesi kuruldu.
-Model entegrasyonu sonraki fazda aynı servis arayüzü üzerinden eklenebilir.
+Varsayılan olarak Ollama üzerindeki `qwen3:4b` kullanılır. Yapılandırmadaki model
+adı değiştirilerek başka bir uyumlu yerel model seçilebilir.
 
 ### Confidence gerçek olasılık mı?
 
-Hayır. Kural sayısı ve en yakın rakip skor arasındaki farka dayanan, belgelenmiş
-sezgisel bir değerdir.
+Model kullanıldığında modelin yapılandırılmış confidence değeri, fallback
+kullanıldığında belgelenmiş kural tabanlı sezgisel değer döner. Hangi yöntemin
+kullanıldığı `analysisMethod` alanından anlaşılır.
 
 ### Proje tıbbi tavsiye veriyor mu?
 

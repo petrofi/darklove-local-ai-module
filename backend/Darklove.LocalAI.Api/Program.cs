@@ -1,10 +1,17 @@
+using System.Text.Json.Serialization;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Endpoints;
+using Darklove.LocalAI.Api.Features.EmotionAnalysis.Models;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
 using Darklove.LocalAI.Api.Infrastructure.Health;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
 builder.Services.AddExceptionHandler(options =>
 {
     options.StatusCodeSelector = exception =>
@@ -29,7 +36,39 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 builder.Services.AddHealthChecks();
-builder.Services.AddSingleton<IEmotionAnalysisService, RuleBasedEmotionAnalysisService>();
+builder.Services
+    .AddOptions<LocalModelOptions>()
+    .Bind(builder.Configuration.GetSection(LocalModelOptions.SectionName))
+    .Validate(
+        options => !options.Enabled ||
+            (Uri.TryCreate(options.Endpoint, UriKind.Absolute, out var endpoint) &&
+             endpoint.Scheme is "http" or "https" &&
+             endpoint.IsLoopback),
+        "LocalModel:Endpoint güvenlik nedeniyle localhost, 127.0.0.1 veya ::1 olmalıdır.")
+    .Validate(
+        options => !options.Enabled ||
+            string.Equals(options.Provider, "ollama", StringComparison.OrdinalIgnoreCase),
+        "Bu sürümde desteklenen LocalModel:Provider değeri 'ollama'dır.")
+    .Validate(
+        options => !options.Enabled || !string.IsNullOrWhiteSpace(options.Model),
+        "LocalModel:Model boş bırakılamaz.")
+    .Validate(
+        options => options.TimeoutSeconds is >= 5 and <= 300,
+        "LocalModel:TimeoutSeconds 5 ile 300 arasında olmalıdır.")
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<IRuleBasedEmotionAnalysisService, RuleBasedEmotionAnalysisService>();
+builder.Services.AddHttpClient<IOpenSourceModelClient, OllamaOpenSourceModelClient>(
+    (serviceProvider, client) =>
+    {
+        var options = serviceProvider
+            .GetRequiredService<IOptions<LocalModelOptions>>()
+            .Value;
+
+        client.BaseAddress = new Uri(options.Endpoint);
+        client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+    });
+builder.Services.AddScoped<IEmotionAnalysisService, HybridEmotionAnalysisService>();
 
 var app = builder.Build();
 
@@ -56,6 +95,7 @@ if (app.Configuration.GetValue("HttpsRedirection:Enabled", true))
 }
 
 app.MapHealthEndpoint();
+app.MapOpenSourceModelEndpoints();
 app.MapEmotionAnalysisEndpoints();
 
 app.Run();

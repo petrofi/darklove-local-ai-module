@@ -2,55 +2,73 @@
 
 ## Genel Bakış
 
-Darklove Local AI Module, .NET 10 üzerinde çalışan küçük ve odaklı bir Minimal
-API'dir. İlk sürümde veritabanı, bulut servisi veya harici yapay zekâ API'si
-kullanılmaz. Kullanıcı metni yalnızca istek süresince bellekte işlenir.
+Darklove Local AI Module, .NET 10 üzerinde çalışan hibrit bir Minimal API'dir.
+Birincil analiz Ollama üzerinde çalışan açık ağırlıklı yerel modelle yapılır.
+Model hazır değilse mevcut kural tabanlı servis otomatik fallback sağlar.
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["İstemci / Swagger UI"] --> B["POST /api/emotion/analyze"]
     B --> C["İstek doğrulama"]
     C --> D["RuleBasedEmotionAnalysisService"]
-    D --> E["Türkçe ve Unicode normalizasyonu"]
-    E --> F["Duygu kuralları ve kriz kontrolü"]
-    F --> G["Skor, eşleşme ve güven hesabı"]
-    G --> H["EmotionAnalysisResponse"]
+    D --> E{"Kriz ifadesi var mı?"}
+    E -- Evet --> F["Deterministik güvenli yanıt ve 112"]
+    E -- Hayır --> G{"LocalModel etkin mi?"}
+    G -- Hayır --> H["Kural tabanlı sonuç"]
+    G -- Evet --> I["OllamaOpenSourceModelClient"]
+    I --> J["localhost:11434 /api/chat"]
+    J --> K{"Geçerli JSON model yanıtı?"}
+    K -- Evet --> L["Model sonucu + güvenli mesaj"]
+    K -- Hayır --> M["Kural tabanlı fallback"]
+    F --> N["EmotionAnalysisResponse"]
+    H --> N
+    L --> N
+    M --> N
 ```
 
 ## Katmanlar
 
 ### Sunum Katmanı
 
-`EmotionAnalysisEndpoints`, HTTP sözleşmesini yönetir. İstek doğrulaması burada
-yapılır, ancak analiz kuralları endpoint içinde bulunmaz.
+`EmotionAnalysisEndpoints`, HTTP sözleşmesini ve doğrulamayı yönetir.
+`OpenSourceModelEndpoints`, Ollama ve seçilen modelin hazır olup olmadığını
+`GET /api/model/status` üzerinden gösterir.
 
-### İş Mantığı Katmanı
+### Hibrit İş Mantığı
 
-`RuleBasedEmotionAnalysisService`, metin normalizasyonu, anahtar ifade eşleşmesi,
-duygu seçimi, güven hesabı ve kriz yanıtından sorumludur.
+`HybridEmotionAnalysisService` önce deterministik güvenlik kontrolünü çalıştırır.
+Risk yoksa ve model etkinse `IOpenSourceModelClient` üzerinden yerel modele
+gider. Model hatalarında kural tabanlı sonucu döndürür.
 
-### Sözleşmeler
+### Kural ve Güvenlik Katmanı
 
-`EmotionAnalysisRequest` ve `EmotionAnalysisResponse`, API'nin istemciye açık
-JSON yapısını tanımlar. Bu modeller herhangi bir veri tabanı modeline bağlı
-değildir.
+`RuleBasedEmotionAnalysisService`, tam kelime eşleşmesi, kriz kontrolü ve
+açıklanabilir kural skorlarını üretir. `EmotionResponsePolicy`, kullanıcıya
+verilen mesajları kod içinde tutar; modelin tavsiye üretmesine izin verilmez.
 
-### Altyapı
+### Yerel Model Katmanı
 
-Health endpointi ASP.NET Core `HealthCheckService` altyapısını kullanır.
-`Program.cs`; dependency injection, ProblemDetails, OpenAPI, Swagger UI, HTTPS
-ve endpoint eşlemelerini bir araya getirir.
+`OllamaOpenSourceModelClient`, `IHttpClientFactory` ile Ollama'nın `/api/chat`
+endpointine gider. İstek structured output JSON şeması içerir. Yanıt hem JSON
+olarak ayrıştırılır hem de izin verilen duygu ve skor aralıklarına göre
+doğrulanır.
+
+### Yapılandırma
+
+`LocalModelOptions`; sağlayıcı, loopback endpointi, model adı ve zaman aşımını
+tanımlar. Uzak endpointler doğrulama aşamasında reddedilir.
 
 ## Tasarım Kararları
 
-- Küçük API yüzeyi nedeniyle Minimal API seçildi.
-- İş kuralları test edilebilsin diye route handler'dan ayrıldı.
-- Servis durumsuz olduğu için singleton olarak kaydedildi.
-- Tam kelime/ifade eşleşmesiyle `sinir` ve `sinir sistemi` gibi yanlış pozitifler
-  önlendi.
-- Kriz kontrolü duygu skorundan bağımsız tutuldu.
-- Swagger UI yalnızca Development ortamında açıldı.
-- Kullanıcı metni gizlilik nedeniyle loglanmaz ve saklanmaz.
+- Yerel model çalışma zamanı olarak Ollama seçildi; farklı modeller tek API ile
+  değiştirilebilir.
+- Model entegrasyonu `IOpenSourceModelClient` arayüzünün arkasındadır.
+- Kriz güvenliği hiçbir koşulda modele devredilmez.
+- Model yalnızca sınıflandırma yapar; kullanıcı mesajları deterministiktir.
+- Model hatası API'yi durdurmaz, `rule-based-fallback` sonucu üretir.
+- `scores` ve `modelScores` farklı anlamları korumak için ayrı alanlardır.
+- Model endpointi yalnızca loopback olabilir.
+- Hassas kullanıcı metni saklanmaz ve loglanmaz.
 
 Ayrıntılı açıklama için [Türkçe Teknik Rapor](technical-report-tr.md) belgesine
 bakın.

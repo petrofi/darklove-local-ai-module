@@ -14,6 +14,11 @@
 - [x] Birim ve API entegrasyon testleri
 - [x] GitHub Actions build/test iş akışı
 - [x] Türkçe teknik rapor ve demo notları
+- [x] Ollama açık model istemcisi
+- [x] JSON şemalı model çıktısı ve sözleşme doğrulaması
+- [x] Hibrit model/kural fallback mimarisi
+- [x] Yerel model durum endpointi
+- [x] Kriz ifadelerinde modeli devre dışı bırakan güvenlik politikası
 
 ## Sonraki Faz: Veri ve Ölçüm
 
@@ -28,13 +33,12 @@
 - [ ] Deney ortamını tekrar üretilebilir hale getirmek
 - [ ] Kural tabanlı ve deneysel model sonuçlarını karşılaştırmak
 
-## Sonraki Faz: Microsoft Foundry Local
+## Sonraki Faz: Model Karşılaştırması
 
-- [ ] Uygun yerel model ve cihaz gereksinimlerini araştırmak
-- [ ] Foundry Local üzerinde ilk çıkarım prototipini hazırlamak
-- [ ] Model servisi için `IEmotionAnalysisService` uygulaması eklemek
-- [ ] Kural tabanlı servisi güvenli geri dönüş seçeneği olarak korumak
+- [ ] Qwen3 1.7B, 4B ve uygun diğer açık modelleri karşılaştırmak
 - [ ] Gecikme, kaynak tüketimi ve doğruluk karşılaştırması yapmak
+- [ ] Microsoft Foundry Local için `IOpenSourceModelClient` adaptörü eklemek
+- [ ] Ollama ve Foundry Local sonuçlarını aynı veri kümesinde karşılaştırmak
 
 ## Son Teslim
 

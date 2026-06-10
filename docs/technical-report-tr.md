@@ -25,18 +25,21 @@ Bu nedenle projenin uzun vadeli hedefi, duygu analizini ve destek mesajı
 
 ## 3. Mevcut Sürümün Hedefi
 
-Mevcut sürüm, gerçek bir makine öğrenmesi modeli değildir. Kural tabanlı ve
-açıklanabilir bir sağlam MVP'dir. Bu tercih bilinçlidir:
+Mevcut sürüm hibrit bir yerel AI uygulamasıdır. Ollama üzerinde çalışan açık
+ağırlıklı bir dil modeli birincil duygu sınıflandırmasını yapar. Model kapalı,
+eksik veya geçersiz yanıt verdiğinde açıklanabilir kural tabanlı servis
+otomatik fallback sağlar.
 
-- API sözleşmesi model entegrasyonundan önce sabitlenir.
-- Gizlilik ve kriz güvenliği erken aşamada ele alınır.
-- Sonuçlar deterministik olduğu için kolayca test edilir.
-- Gelecekteki modelin sonuçları karşılaştırılabilir.
-- Foundry Local entegrasyonu aynı servis arayüzünün yeni uygulaması olarak
-  eklenebilir.
+Model entegrasyonunda şu sınırlar bilinçli olarak korunur:
 
-MVP'nin başarı ölçütü, her cümleyi kusursuz anlamak değil; tanımlı kuralları
-öngörülebilir, açıklanabilir ve güvenli biçimde uygulamaktır.
+- Kullanıcı metni yalnızca loopback üzerindeki yerel modele gönderilir.
+- Model yalnızca yapılandırılmış duygu sınıflandırması üretir.
+- Kriz tespiti modele bırakılmaz.
+- Kullanıcıya verilen destek mesajları model tarafından yazılmaz.
+- Hangi analiz yönteminin kullanıldığı API yanıtında açıkça belirtilir.
+
+Başarı ölçütü yalnızca modelden yanıt almak değil; model bulunmadığında da
+çalışan, güvenli ve test edilebilir bir sistem oluşturmaktır.
 
 ## 4. Kapsam ve Kapsam Dışı Konular
 
@@ -53,10 +56,13 @@ MVP'nin başarı ölçütü, her cümleyi kusursuz anlamak değil; tanımlı kur
 - OpenAPI ve Swagger UI
 - Birim ve entegrasyon testleri
 - GitHub Actions CI
+- Ollama yerel model entegrasyonu
+- JSON Schema structured output
+- Model durum endpointi
+- Otomatik kural tabanlı fallback
 
 ### Bu sürümde bulunmayanlar
 
-- Makine öğrenmesi veya büyük dil modeli
 - Microsoft Foundry Local entegrasyonu
 - Python deneyleri
 - Veritabanı
@@ -85,10 +91,29 @@ sorumluluklarını taşır, analiz ayrı servistedir.
 
 ### Dependency Injection
 
-`IEmotionAnalysisService`, endpoint ile analiz uygulaması arasındaki
-sözleşmedir. `RuleBasedEmotionAnalysisService` bu sözleşmenin mevcut
-uygulamasıdır. Gelecekte `FoundryLocalEmotionAnalysisService` yazılarak endpoint
-değiştirilmeden model tabanlı analiz eklenebilir.
+`IEmotionAnalysisService`, endpoint ile hibrit analiz uygulaması arasındaki
+sözleşmedir. `HybridEmotionAnalysisService`, güvenlik kuralları, Ollama istemcisi
+ve fallback akışını koordine eder.
+
+`IOpenSourceModelClient`, belirli model çalışma zamanını soyutlar.
+`OllamaOpenSourceModelClient` mevcut uygulamadır. Gelecekte Foundry Local için
+aynı arayüzü uygulayan ikinci bir adaptör eklenebilir.
+
+### Ollama ve Structured Output
+
+Ollama, farklı açık ağırlıklı modelleri ortak bir yerel HTTP API üzerinden
+çalıştırır. Proje `/api/chat` endpointini kullanır ve `format` alanına JSON
+şeması gönderir. Sıcaklık `0` olarak ayarlanarak sonuçların daha deterministik
+olması hedeflenir.
+
+Modelin JSON üretmesi tek başına yeterli kabul edilmez. Uygulama ayrıca:
+
+- Duygu adının izin verilen listede olduğunu,
+- Confidence değerinin 0-1 arasında olduğunu,
+- Beş model skorunun eksiksiz olduğunu,
+- Her skorun 0-1 arasında olduğunu
+
+kontrol eder.
 
 ### OpenAPI ve Swagger UI
 
@@ -110,21 +135,30 @@ flowchart TD
     A["İstemci"] --> B["EmotionAnalysisEndpoints"]
     B --> C{"İstek geçerli mi?"}
     C -- Hayır --> D["400 ValidationProblem"]
-    C -- Evet --> E["IEmotionAnalysisService"]
+    C -- Evet --> E["HybridEmotionAnalysisService"]
     E --> F["RuleBasedEmotionAnalysisService"]
-    F --> G["Normalizasyon"]
-    G --> H["Duygu eşleştirme"]
-    H --> I["Kriz kontrolü"]
-    I --> J["Skor ve güven hesabı"]
-    J --> K["EmotionAnalysisResponse"]
-    K --> A
+    F --> G{"Kriz riski?"}
+    G -- Evet --> H["Deterministik güvenli yanıt"]
+    G -- Hayır --> I{"Model etkin mi?"}
+    I -- Hayır --> J["Kural sonucu"]
+    I -- Evet --> K["OllamaOpenSourceModelClient"]
+    K --> L["localhost:11434/api/chat"]
+    L --> M{"Geçerli model yanıtı?"}
+    M -- Evet --> N["Model sınıflandırması"]
+    M -- Hayır --> O["Kural tabanlı fallback"]
+    H --> P["EmotionAnalysisResponse"]
+    J --> P
+    N --> P
+    O --> P
+    P --> A
 ```
 
 Temel tasarım ilkesi sorumluluk ayrımıdır:
 
 - `Program.cs` uygulamayı kurar.
 - Endpoint HTTP isteğini yönetir.
-- Servis analiz kararlarını üretir.
+- Hibrit servis model ve fallback kararını üretir.
+- Ollama istemcisi yerel model iletişimini yönetir.
 - DTO'lar dış API sözleşmesini tanımlar.
 - Testler davranışı korur.
 
@@ -187,6 +221,40 @@ Projenin ana iş mantığıdır. Şunları gerçekleştirir:
 
 Servis herhangi bir değişken kullanıcı durumu saklamadığı için singleton olarak
 güvenle kullanılabilir. Statik kurallar yalnızca okunur.
+
+### `Features/EmotionAnalysis/Services/HybridEmotionAnalysisService.cs`
+
+Analiz akışının koordinatörüdür:
+
+1. Kural tabanlı güvenlik ve açıklanabilirlik sonucunu üretir.
+2. Kriz riski varsa modeli çağırmadan bu sonucu döndürür.
+3. Model kapalıysa kural sonucunu döndürür.
+4. Model açıksa structured classification ister.
+5. Başarılı model sonucunu güvenli mesaj politikasıyla birleştirir.
+6. Model hatasında `rule-based-fallback` sonucunu döndürür.
+
+Fallback nedeni kullanıcı metnini içermeyen sabit kodlarla açıklanır:
+`model-unavailable`, `model-not-found`, `model-timeout`,
+`invalid-model-response` veya `model-error`.
+
+### `Features/EmotionAnalysis/Services/OllamaOpenSourceModelClient.cs`
+
+Ollama `/api/chat` ve `/api/tags` endpointlerini kullanır. Duygu
+sınıflandırması için JSON şeması gönderir, model yanıtını ayrıştırır ve
+doğrular. `/api/tags`, seçilen modelin indirilmiş olup olmadığını anlamak için
+kullanılır.
+
+### `Features/EmotionAnalysis/Models/LocalModelOptions.cs`
+
+Model kullanımının açık olup olmadığını, sağlayıcıyı, endpointi, model adını ve
+zaman aşımını tanımlar. Endpoint doğrulaması yalnızca loopback adreslerine izin
+verir. Bu kontrol hassas metnin yanlışlıkla uzaktaki bir sunucuya gönderilmesini
+önler.
+
+### `Features/EmotionAnalysis/Endpoints/OpenSourceModelEndpoints.cs`
+
+`GET /api/model/status` endpointini tanımlar. `ready`, `model-not-found`,
+`runtime-unavailable` veya `disabled` durumlarından birini döndürür.
 
 ### `Features/EmotionAnalysis/Endpoints/EmotionAnalysisEndpoints.cs`
 
@@ -313,8 +381,13 @@ dürüst ve açıklanabilir yapar.
 
 ## 9. Güven Değeri
 
-`confidence` bir makine öğrenmesi olasılığı değildir. Kural eşleşmelerinden
-üretilen sezgisel bir göstergedir.
+`confidence` değeri kullanılan analiz yöntemine bağlıdır.
+
+- `analysisMethod=open-source-model` ise doğrulanmış model confidence değeridir.
+- Kural veya fallback kullanıldıysa aşağıdaki sezgisel formülle hesaplanır.
+
+Bu değer klinik güven, tanı olasılığı veya istatistiksel olarak kalibre edilmiş
+bir risk skoru değildir.
 
 ### Neutral
 
@@ -426,6 +499,22 @@ GET /api/health
 }
 ```
 
+### Local Model Status
+
+```http
+GET /api/model/status
+```
+
+```json
+{
+  "provider": "ollama",
+  "model": "qwen3:4b",
+  "runtimeAvailable": true,
+  "modelAvailable": true,
+  "status": "ready"
+}
+```
+
 ### Emotion Analyze
 
 ```http
@@ -459,17 +548,32 @@ Başarılı yanıt:
   },
   "riskLevel": "none",
   "needsSupportWarning": false,
-  "motivationMessage": "Bugün zor geçiyor olabilir..."
+  "motivationMessage": "Bugün zor geçiyor olabilir...",
+  "analysisMethod": "open-source-model",
+  "model": "qwen3:4b",
+  "modelScores": {
+    "sadness": 0.86,
+    "anxiety": 0.08,
+    "hope": 0.02,
+    "anger": 0.01,
+    "neutral": 0.03
+  }
 }
 ```
+
+`scores`, kural tabanlı eşleşme sayılarını korur. `modelScores`, model
+sınıflandırmasının 0-1 aralığındaki ayrı skorlarını gösterir. Model kullanılamaz
+ve fallback çalışırsa `fallbackReason` alanı eklenir.
 
 ## 13. Gizlilik ve Etik Kararlar
 
 - Kullanıcı metni veritabanına yazılmaz.
 - Kullanıcı metni loglanmaz.
 - Harici bulut AI servisine istek gönderilmez.
+- Model endpointi yalnızca loopback olabilir.
+- Modelden destek mesajı veya kriz tavsiyesi alınmaz.
 - API sonucu tıbbi teşhis olarak sunulmaz.
-- Confidence değeri gerçek model olasılığı gibi tanıtılmaz.
+- Confidence değeri klinik olasılık gibi tanıtılmaz.
 - Kriz mesajı, kullanıcıyı uygulamaya bağımlı kılmak yerine gerçek insan ve acil
   yardım kaynaklarına yönlendirir.
 - Swagger UI üretim ortamında kapalıdır.
@@ -490,6 +594,13 @@ deterministik biçimde doğrular:
 - Tam kelime eşleşmesi
 - Güven formülü
 - Kriz mesajı ve 112 yönlendirmesi
+- Model başarılı olduğunda hibrit sonucun kullanılması
+- Model hatasında fallback
+- Kriz metninde model istemcisinin çağrılmaması
+- Model kapalıyken yalnızca kuralların kullanılması
+- Ollama JSON sözleşmesinin ayrıştırılması
+- Geçersiz model yanıtının reddedilmesi
+- Model status sonucunun doğrulanması
 
 ### Entegrasyon testleri neden var?
 
@@ -503,14 +614,35 @@ Entegrasyon testleri şunları doğrular:
 - Bozuk JSON için 400 yanıtı
 - OpenAPI belgesinin erişilebilirliği
 - Swagger UI'ın Development ortamında erişilebilirliği
+- Model status endpointinin erişilebilirliği
 
-Toplam 20 test bulunmaktadır.
+Toplam 28 test bulunmaktadır.
 
 ## 15. Kurulum ve Çalıştırma
 
-### Gereksinim
+### Gereksinimler
 
-.NET 10 SDK kurulu olmalıdır.
+- .NET 10 SDK
+- Ollama
+- İndirilen bir açık ağırlıklı model
+
+Varsayılan model:
+
+```powershell
+ollama pull qwen3:4b
+```
+
+Ollama otomatik çalışmıyorsa:
+
+```powershell
+ollama serve
+```
+
+Model kontrolü:
+
+```powershell
+ollama list
+```
 
 ### Restore
 
@@ -558,26 +690,23 @@ dotnet test Darklove.LocalAI.slnx
 
 1. Swagger UI'ı aç.
 2. `GET /api/health` ile API'nin çalıştığını göster.
-3. Sadness örneğini gönder ve iki eşleşmeyi göster.
-4. Response içindeki tüm duygu skorlarını açıkla.
-5. `Sinir sistemi hakkında okuyorum` örneğiyle yanlış pozitif düzeltmesini
-   göster.
-6. Sadness ve anger eşitliğinde `mixed` sonucunu göster.
-7. Boş metin göndererek ProblemDetails yanıtını göster.
-8. Kriz örneğini göndererek normal mesajın güvenli destek mesajıyla
-   değiştiğini göster.
-9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve test sonucunu
-   göster.
-10. Sonraki fazda Foundry Local servisinin aynı arayüze ekleneceğini anlat.
+3. `GET /api/model/status` ile modelin `ready` olduğunu göster.
+4. Kural listesinde bulunmayan bir metnin modelle sınıflandırılmasını göster.
+5. `analysisMethod`, `modelScores` ve model adını açıkla.
+6. Ollama'yı durdurup `rule-based-fallback` davranışını göster.
+7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+8. Boş metin göndererek ProblemDetails yanıtını göster.
+9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve 28 testi göster.
+10. Foundry Local için aynı istemci arayüzüne ikinci adaptör eklenebileceğini
+    anlat.
 
 ## 17. Bilinen Sınırlamalar
 
-- Sistem yalnızca tanımlı Türkçe ifadeleri tanır.
-- İroni, mecaz, olumsuzluk ve uzun bağlamı anlayamaz.
-- `Mutlu değilim` gibi dilsel yapılar özel kurallar olmadan yanlış
-  yorumlanabilir.
-- Yazım hataları ve farklı ekler tümüyle desteklenmez.
-- Skorlar istatistiksel olarak kalibre edilmemiştir.
+- Sonuç kalitesi seçilen modelin kapasitesine ve donanıma bağlıdır.
+- Küçük modeller ironi, mecaz ve olumsuzlukta hata yapabilir.
+- Model skorları istatistiksel veya klinik olarak kalibre edilmemiştir.
+- İlk model yüklemesi ve düşük donanımda çıkarım yavaş olabilir.
+- Fallback yalnızca tanımlı Türkçe ifadeleri tanır.
 - Kriz kontrolü tüm olası risk ifadelerini kapsamaz.
 - Üretim kullanımı için uzman değerlendirmesi ve daha kapsamlı güvenlik
   politikaları gerekir.
@@ -588,25 +717,27 @@ Bu sınırlamalar sunumda açıkça belirtilmelidir.
 
 Foundry Local entegrasyonu geldiğinde önerilen yaklaşım:
 
-1. `FoundryLocalEmotionAnalysisService` sınıfını oluştur.
-2. `IEmotionAnalysisService` arayüzünü uygula.
-3. Model yanıtını mevcut `EmotionAnalysisResponse` sözleşmesine dönüştür.
-4. Kriz kontrolünü modelden bağımsız güvenlik katmanı olarak koru.
-5. Yapılandırmayla rule-based ve model tabanlı servis arasında seçim yap.
-6. Model çalışmazsa kural tabanlı servisi fallback olarak kullan.
-7. Aynı test veri kümesinde iki yaklaşımı karşılaştır.
+1. `FoundryLocalOpenSourceModelClient` sınıfını oluştur.
+2. `IOpenSourceModelClient` arayüzünü uygula.
+3. Native chat completion sonucunu `OpenSourceModelClassification` biçimine
+   dönüştür.
+4. `LocalModel:Provider` değerine göre Ollama veya Foundry Local istemcisini
+   kaydet.
+5. Kriz kontrolünü ve fallback servisini değiştirmeden koru.
+6. Aynı test veri kümesinde iki çalışma zamanını karşılaştır.
 
 Bu mimari sayesinde mevcut endpoint ve istemci sözleşmesi korunabilir.
 
 ## 19. Sonuç
 
-Proje ilk prototipten, sorumlulukları ayrılmış ve testlerle korunan bir sağlam
-MVP'ye dönüştürülmüştür. Mevcut sistem yapay zekâ modeli olduğunu iddia etmez;
-yerel AI hedefi için gerekli API, güvenlik, açıklanabilirlik, doğrulama ve test
-temelini kurar.
+Proje ilk prototipten, açık ağırlıklı yerel model çalıştırabilen ve model
+hatalarında güvenli biçimde çalışmaya devam eden hibrit bir uygulamaya
+dönüştürülmüştür.
 
-Bu temel, Microsoft Foundry Local entegrasyonunun daha kontrollü, ölçülebilir ve
-sunulabilir biçimde geliştirilmesini sağlar.
+Ollama entegrasyonu gerçek model sınıflandırması sağlar. Kural tabanlı servis
+ise açıklanabilirlik, kriz güvenliği ve çalışma sürekliliği görevlerini korur.
+Bu ayrım, Microsoft Foundry Local gibi başka çalışma zamanlarının kontrollü
+biçimde eklenmesini kolaylaştırır.
 
 ## 20. Kaynaklar
 
@@ -614,4 +745,7 @@ sunulabilir biçimde geliştirilmesini sağlar.
 - [OpenAPI belgesini Swagger UI ile kullanma](https://learn.microsoft.com/aspnet/core/fundamentals/openapi/using-openapi-documents?view=aspnetcore-10.0)
 - [ASP.NET Core Minimal APIs](https://learn.microsoft.com/aspnet/core/fundamentals/minimal-apis?view=aspnetcore-10.0)
 - [ASP.NET Core Integration Tests](https://learn.microsoft.com/aspnet/core/test/integration-tests?view=aspnetcore-10.0)
+- [Ollama Chat API](https://docs.ollama.com/api/chat)
+- [Ollama Structured Outputs](https://docs.ollama.com/capabilities/structured-outputs)
+- [Microsoft Foundry Local başlangıç](https://learn.microsoft.com/azure/foundry-local/get-started)
 - [T.C. 112 Acil Çağrı Merkezi](https://www.112.gov.tr/112-acm-projesi)
