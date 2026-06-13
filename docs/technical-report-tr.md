@@ -195,6 +195,27 @@ Temel tasarım ilkesi sorumluluk ayrımıdır:
 API ve test projelerini tek çözüm altında toplar. `dotnet build` ve `dotnet test`
 komutlarının tüm projelerde birlikte çalışmasını sağlar.
 
+### `darklove.cmd`
+
+Windows kullanıcısının PowerShell yürütme ayrıntılarını bilmeden terminal
+istemcisini açmasını sağlayan en küçük giriş dosyasıdır. Çalışma klasörünü
+deponun köküne taşır, UTF-8 kod sayfasını etkinleştirir ve aldığı seçenekleri
+`scripts/darklove-cli.ps1` dosyasına aktarır.
+
+### `scripts/darklove-cli.ps1`
+
+CMD deneyiminin asıl mantığını içerir. API zaten açıksa doğrudan onu kullanır.
+API kapalıysa mevcut Release çıktısını açar; henüz çıktı yoksa yalnızca API
+projesini derler. Uygulamayı gizli bir alt süreç olarak `http://localhost:5019`
+adresinde başlatır ve health endpointi hazır olana kadar bekler. Kullanıcı
+metnini JSON olarak UTF-8 kodlayıp mevcut analiz endpointine gönderir; böylece
+web ve CMD sürümleri aynı güvenlik, model ve fallback kurallarını kullanır.
+
+İstemci `modeller`, `durum`, `yardım` ve `çıkış` komutlarını destekler.
+`-Once` seçeneği tek bir metni analiz edip kapanan sunum/otomasyon kullanımını,
+`-NoStart` seçeneği ise yalnızca önceden çalışan API'ye bağlanmayı sağlar.
+İstemci API'yi kendisi başlattıysa çıkışta yalnızca o süreci kapatır.
+
 ### `backend/Darklove.LocalAI.Api/Program.cs`
 
 Uygulamanın başlangıç noktasıdır:
@@ -762,18 +783,45 @@ https://localhost:7239/swagger
 dotnet test Darklove.LocalAI.slnx
 ```
 
+### Windows CMD istemcisi
+
+Proje klasöründe `darklove.cmd` dosyasına çift tıklanabilir veya CMD içinde şu
+komut çalıştırılabilir:
+
+```cmd
+darklove.cmd
+```
+
+API'nin ayrıca başlatılması gerekmez. Derlenmiş çıktı yoksa ilk çalıştırmada API
+projesi otomatik derlenir. Terminal açıldıktan sonra doğrudan metin yazılır.
+Yardımcı komutlar:
+
+```text
+modeller  Bilgisayardaki yerel modelleri listeler.
+durum     Yerel model sağlayıcısının durumunu gösterir.
+yardım    Komut listesini gösterir.
+çıkış     İstemciyi ve istemcinin başlattığı API'yi kapatır.
+```
+
+Tek seferlik örnek:
+
+```cmd
+darklove.cmd -Once "Bugün kendimi yalnız ve yorgun hissediyorum."
+```
+
 ## 16. Jüri Demo Akışı
 
-1. Kök adresteki Türkçe web demo ekranını aç.
-2. Model yöneticisinde bulunan yerel LLM'i, boyutunu ve quantization bilgisini göster.
-3. **Yükle ve kullan** ile modeli aktif hale getir.
-4. Hazır örneklerden normal bir metni analiz et.
-5. `analysisMethod`, `modelScores` ve model adını açıkla.
-6. Yerel runtime'ı durdurup `rule-based-fallback` davranışını göster.
-7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
-8. Swagger UI'da `GET /api/health` ve model yönetim sözleşmesini göster.
-9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve 38 testi göster.
-10. Foundry Local için aynı istemci arayüzüne yeni adaptör eklenebileceğini
+1. CMD içinde `darklove.cmd` çalıştırıp en sade kullanıcı akışını göster.
+2. `modeller` komutuyla bilgisayardaki yerel LLM'leri göster.
+3. Kök adresteki Türkçe web demo ekranını aç.
+4. Model yöneticisinde model boyutunu ve quantization bilgisini göster.
+5. **Yükle ve kullan** ile modeli aktif hale getir.
+6. Hazır örneklerden normal bir metni analiz et.
+7. `analysisMethod`, `modelScores` ve model adını açıkla.
+8. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+9. Swagger UI'da `GET /api/health` ve model yönetim sözleşmesini göster.
+10. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve testleri göster.
+11. Foundry Local için aynı istemci arayüzüne yeni adaptör eklenebileceğini
     anlat.
 
 ## 17. Bilinen Sınırlamalar

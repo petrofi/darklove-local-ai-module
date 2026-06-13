@@ -101,6 +101,26 @@ Uygulama başladıktan sonra:
 - Health check: `http://localhost:5019/api/health`
 - OpenAPI: `http://localhost:5019/openapi/v1.json`
 
+## En Sade Kullanım: Windows CMD
+
+Teknik komutlarla uğraşmadan terminal sürümünü açmak için proje klasöründeki
+`darklove.cmd` dosyasına çift tıklayın veya CMD içinde çalıştırın:
+
+```cmd
+darklove.cmd
+```
+
+Metninizi doğrudan terminale yazabilirsiniz. `modeller` bilgisayardaki yerel
+modelleri, `durum` aktif sağlayıcıyı gösterir; `çıkış` programı kapatır. API
+çalışmıyorsa istemci onu otomatik olarak hazırlar ve başlatır. İstemci yalnızca
+kendi başlattığı API sürecini çıkışta kapatır.
+
+Tek bir metni analiz edip kapanmak için:
+
+```cmd
+darklove.cmd -Once "Bugün kendimi yalnız ve yorgun hissediyorum."
+```
+
 Web demo ekranında bir örnek metin seçebilir veya en fazla 2.000 karakterlik
 kendi metnini yazıp **Metni analiz et** düğmesine basabilirsin. Ekran; bulunan
 duyguyu, güven değerini, analiz yöntemini, kural/model skorlarını, eşleşen

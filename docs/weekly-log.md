@@ -130,6 +130,23 @@ komutu gerektirmeden model seçme ve indirme akışı sağlamak.
 - Statik dosya önbelleğinin eski JavaScript göstermemesi için sürümleme eklendi.
 - Toplam 38 test başarıyla çalıştırıldı.
 
+## 8. Hafta: Windows CMD İstemcisi
+
+### Hedef
+
+Web arayüzüne ek olarak, teknik ayrıntı bilmeden CMD içinde kullanılabilen en
+sade metin tabanlı sürümü hazırlamak.
+
+### Tamamlananlar
+
+- `darklove.cmd` ile çift tıklanarak açılan terminal girişi eklendi.
+- API kapalıysa mevcut çıktıyı kullanan, ilk çalıştırmada yalnızca API projesini
+  derleyip otomatik başlatan istemci yazıldı.
+- Metin analizi için web ile aynı endpoint ve güvenlik kuralları kullanıldı.
+- `modeller`, `durum`, `yardım` ve `çıkış` komutları eklendi.
+- Tek seferlik kullanım için `-Once` seçeneği eklendi.
+- CMD istemcisinin yalnızca kendi başlattığı API sürecini kapatması sağlandı.
+
 ## Sonraki Adım
 
 Gerçek cihaz üzerinde farklı model boyutlarının hız ve doğruluk ölçümünü yapmak,
