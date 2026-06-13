@@ -25,8 +25,8 @@ Bu nedenle projenin uzun vadeli hedefi, duygu analizini ve destek mesajı
 
 ## 3. Mevcut Sürümün Hedefi
 
-Mevcut sürüm hibrit bir yerel AI uygulamasıdır. Ollama üzerinde çalışan açık
-ağırlıklı bir dil modeli birincil duygu sınıflandırmasını yapar. Model kapalı,
+Mevcut sürüm hibrit bir yerel AI uygulamasıdır. LM Studio veya Ollama üzerinde
+çalışan açık bir dil modeli birincil duygu sınıflandırmasını yapar. Model kapalı,
 eksik veya geçersiz yanıt verdiğinde açıklanabilir kural tabanlı servis
 otomatik fallback sağlar.
 
@@ -57,9 +57,11 @@ Başarı ölçütü yalnızca modelden yanıt almak değil; model bulunmadığı
 - OpenAPI ve Swagger UI
 - Birim ve entegrasyon testleri
 - GitHub Actions CI
-- Ollama yerel model entegrasyonu
+- LM Studio ve Ollama yerel model entegrasyonu
 - JSON Schema structured output
 - Model durum endpointi
+- Model kataloğu, aktif model seçimi ve model yükleme
+- Web üzerinden model indirme ve ilerleme takibi
 - Otomatik kural tabanlı fallback
 
 ### Bu sürümde bulunmayanlar
@@ -93,19 +95,22 @@ sorumluluklarını taşır, analiz ayrı servistedir.
 ### Dependency Injection
 
 `IEmotionAnalysisService`, endpoint ile hibrit analiz uygulaması arasındaki
-sözleşmedir. `HybridEmotionAnalysisService`, güvenlik kuralları, Ollama istemcisi
+sözleşmedir. `HybridEmotionAnalysisService`, güvenlik kuralları, yerel model istemcisi
 ve fallback akışını koordine eder.
 
 `IOpenSourceModelClient`, belirli model çalışma zamanını soyutlar.
-`OllamaOpenSourceModelClient` mevcut uygulamadır. Gelecekte Foundry Local için
-aynı arayüzü uygulayan ikinci bir adaptör eklenebilir.
+`LmStudioOpenSourceModelClient` geliştirme ortamındaki birincil uygulamadır;
+`OllamaOpenSourceModelClient` alternatif sağlayıcı olarak korunur. Gelecekte
+Foundry Local için aynı arayüzü uygulayan yeni bir adaptör eklenebilir.
 
-### Ollama ve Structured Output
+### LM Studio, Ollama ve Structured Output
 
-Ollama, farklı açık ağırlıklı modelleri ortak bir yerel HTTP API üzerinden
-çalıştırır. Proje `/api/chat` endpointini kullanır ve `format` alanına JSON
-şeması gönderir. Sıcaklık `0` olarak ayarlanarak sonuçların daha deterministik
-olması hedeflenir.
+LM Studio, model kataloğu, model yükleme, model indirme ve OpenAI uyumlu chat
+endpointleri sağlar. Proje `/api/v1/models`, `/api/v1/models/load`,
+`/api/v1/models/download` ve `/v1/chat/completions` endpointlerini kullanır.
+Ollama sağlayıcısı `/api/tags`, `/api/pull` ve `/api/chat` endpointlerini
+kullanır. Her iki sağlayıcıda sıcaklık `0` ve JSON şeması kullanılarak sonucun
+daha deterministik olması hedeflenir.
 
 Modelin JSON üretmesi tek başına yeterli kabul edilmez. Uygulama ayrıca:
 
@@ -128,12 +133,18 @@ Development ortamında etkinleştirilmiştir.
 `wwwroot` altındaki HTML, CSS ve JavaScript dosyaları ASP.NET Core tarafından
 aynı uygulama üzerinden sunulur. Bu yaklaşım jüri demosu için ayrı bir Node.js
 projesi, paket yöneticisi veya ikinci sunucu gerektirmez. Tarayıcı doğrudan
-`/api/model/status` ve `/api/emotion/analyze` endpointlerini çağırır.
+`/api/model/status`, `/api/models/` ve `/api/emotion/analyze` endpointlerini çağırır.
 
 Arayüz erişilebilir form etiketleri, klavye ile kullanılabilen hazır örnekler,
 mobil uyumlu yerleşim ve hareket azaltma tercihi içerir. Sonuç ekranda
 `analysisMethod` ve `fallbackReason` alanları da gösterildiği için model ile
 kural tabanlı geri dönüş birbirinden gizlenmez.
+
+Model yöneticisi yalnızca çalışabilir LLM kayıtlarını gösterir. Embedding
+modelleri ve görsel `mmproj` yardımcı dosyaları ayrı dil modeli gibi sunulmaz.
+İndirme girdi doğrulaması katalog kimliklerine ve doğrudan `huggingface.co`
+bağlantılarına izin verir. Böylece web endpointinin genel amaçlı uzak URL
+indiricisine dönüşmesi engellenir.
 
 ### xUnit ve WebApplicationFactory
 
@@ -154,8 +165,8 @@ flowchart TD
     G -- Evet --> H["Deterministik güvenli yanıt"]
     G -- Hayır --> I{"Model etkin mi?"}
     I -- Hayır --> J["Kural sonucu"]
-    I -- Evet --> K["OllamaOpenSourceModelClient"]
-    K --> L["localhost:11434/api/chat"]
+    I -- Evet --> K["LM Studio / Ollama istemcisi"]
+    K --> L["Loopback model API'si"]
     L --> M{"Geçerli model yanıtı?"}
     M -- Evet --> N["Model sınıflandırması"]
     M -- Hayır --> O["Kural tabanlı fallback"]
@@ -172,7 +183,8 @@ Temel tasarım ilkesi sorumluluk ayrımıdır:
 - `Program.cs` uygulamayı kurar.
 - Endpoint HTTP isteğini yönetir.
 - Hibrit servis model ve fallback kararını üretir.
-- Ollama istemcisi yerel model iletişimini yönetir.
+- Sağlayıcı istemcileri yerel model iletişimini yönetir.
+- Model yöneticisi katalog, seçim, yükleme ve indirme akışını yönetir.
 - DTO'lar dış API sözleşmesini tanımlar.
 - Testler davranışı korur.
 
@@ -194,7 +206,7 @@ Uygulamanın başlangıç noktasıdır:
 5. Development ortamında OpenAPI ve Swagger UI'ı açar.
 6. Ortama göre HSTS ve HTTPS yönlendirmesini ayarlar.
 7. Varsayılan belge ve statik dosya middleware'ini etkinleştirir.
-8. Health, model status ve emotion endpointlerini eşler.
+8. Health, model yönetimi ve emotion endpointlerini eşler.
 
 Dosyanın sonunda bulunan `public partial class Program`, entegrasyon testlerinin
 uygulama giriş noktasını bulabilmesi için gereklidir.
@@ -203,10 +215,10 @@ uygulama giriş noktasını bulabilmesi için gereklidir.
 
 API ile birlikte sunulan yerel demo ekranını içerir:
 
-- `index.html`: Formu, model durumunu, örnek metinleri ve sonuç bölgelerini tanımlar.
-- `styles.css`: Mobil uyumlu görünümü, odak stillerini ve kriz sonucu vurgusunu sağlar.
-- `app.js`: API isteklerini gönderir, karakter sayacını günceller ve güvenli biçimde
-  sonuçları DOM üzerinde gösterir.
+- `index.html`: Analiz formunu, model yöneticisini, örnek metinleri ve sonuç bölgelerini tanımlar.
+- `styles.css`: Mobil uyumlu görünümü, model kartlarını, odak stillerini ve kriz vurgusunu sağlar.
+- `app.js`: Analiz ve model yönetimi API isteklerini gönderir, indirme ilerlemesini
+  izler ve sonuçları güvenli biçimde DOM üzerinde gösterir.
 
 JavaScript kullanıcı veya model metnini HTML olarak eklemez; `textContent`
 kullanır. Böylece yanıt içeriğinin çalıştırılabilir işaretlemeye dönüşmesi önlenir.
@@ -275,17 +287,41 @@ sınıflandırması için JSON şeması gönderir, model yanıtını ayrıştır
 doğrular. `/api/tags`, seçilen modelin indirilmiş olup olmadığını anlamak için
 kullanılır.
 
+### `Features/EmotionAnalysis/Services/LmStudioOpenSourceModelClient.cs`
+
+LM Studio REST API üzerinden LLM kataloğunu okur, seçilen modeli belleğe yükler,
+indirme işi başlatır ve iş ilerlemesini sorgular. Duygu sınıflandırması için
+OpenAI uyumlu `/v1/chat/completions` endpointine JSON Schema gönderir.
+
+### `Features/EmotionAnalysis/Services/LocalModelSelection.cs`
+
+Aktif model adını thread-safe biçimde uygulama belleğinde tutar. Web ekranında
+seçilen model, sonraki analiz isteğinde `HybridEmotionAnalysisService` tarafından
+okunur. Kullanıcı metni veya analiz geçmişi bu serviste saklanmaz.
+
+### `Features/EmotionAnalysis/Services/LmStudioRuntimeLauncher.cs`
+
+LM Studio kuruluysa beraberinde gelen `lms` komutunu bulur, arka plan daemon'unu
+ve yalnızca `127.0.0.1` adresine bağlanan API sunucusunu başlatır. Bu özellik
+geliştirme ayarındaki `AutoStartRuntime` anahtarıyla kapatılabilir.
+
 ### `Features/EmotionAnalysis/Models/LocalModelOptions.cs`
 
-Model kullanımının açık olup olmadığını, sağlayıcıyı, endpointi, model adını ve
-zaman aşımını tanımlar. Endpoint doğrulaması yalnızca loopback adreslerine izin
+Model kullanımının açık olup olmadığını, sağlayıcıyı, endpointi, model adını,
+zaman aşımını ve runtime otomatik başlatma seçeneğini tanımlar. Endpoint
+doğrulaması yalnızca loopback adreslerine izin
 verir. Bu kontrol hassas metnin yanlışlıkla uzaktaki bir sunucuya gönderilmesini
 önler.
 
 ### `Features/EmotionAnalysis/Endpoints/OpenSourceModelEndpoints.cs`
 
-`GET /api/model/status` endpointini tanımlar. `ready`, `model-not-found`,
-`runtime-unavailable` veya `disabled` durumlarından birini döndürür.
+Model yönetim API'sini tanımlar:
+
+- `GET /api/model/status`: Seçili modelin özet durumunu döndürür.
+- `GET /api/models/`: Bilgisayardaki çalışabilir LLM'leri listeler.
+- `PUT /api/models/selected`: Modeli belleğe yükler ve aktif hale getirir.
+- `POST /api/models/downloads`: Model indirme işi başlatır.
+- `GET /api/models/downloads/{jobId}`: İndirme ilerlemesini döndürür.
 
 ### `Features/EmotionAnalysis/Endpoints/EmotionAnalysisEndpoints.cs`
 
@@ -311,7 +347,8 @@ ayarını taşır. Kullanıcı metni için özel bir loglama yapılmaz.
 ### `appsettings.Development.json`
 
 Yerel HTTP geliştirme profilinde HTTPS portu bulunamadı uyarısı oluşmaması için
-HTTPS yönlendirmesini varsayılan olarak kapatır.
+HTTPS yönlendirmesini varsayılan olarak kapatır. Ayrıca LM Studio sağlayıcısını,
+`localhost:1234` endpointini ve otomatik runtime başlatmayı etkinleştirir.
 
 ### `Properties/launchSettings.json`
 
@@ -630,6 +667,11 @@ deterministik biçimde doğrular:
 - Kriz metninde model istemcisinin çağrılmaması
 - Model kapalıyken yalnızca kuralların kullanılması
 - Ollama JSON sözleşmesinin ayrıştırılması
+- LM Studio structured output sözleşmesinin ayrıştırılması
+- LM Studio kataloğunda embedding modellerinin filtrelenmesi
+- Aktif model seçiminin model yükleme endpointine gitmesi
+- İndirme işi ve byte alanlarının ayrıştırılması
+- Güvenilmeyen model indirme URL'lerinin reddedilmesi
 - Geçersiz model yanıtının reddedilmesi
 - Model status sonucunun doğrulanması
 
@@ -646,36 +688,25 @@ Entegrasyon testleri şunları doğrular:
 - OpenAPI belgesinin erişilebilirliği
 - Swagger UI'ın Development ortamında erişilebilirliği
 - Model status endpointinin erişilebilirliği
+- Model kapalıyken katalog endpointinin güvenli boş yanıtı
+- Model kapalıyken seçim endpointinin ProblemDetails yanıtı
 - Kök adresteki demo sayfasının erişilebilirliği
 - CSS ve JavaScript dosyalarının doğru içerik türü ve `nosniff` başlığıyla sunulması
 
-Toplam 31 test bulunmaktadır.
+Toplam 38 test bulunmaktadır.
 
 ## 15. Kurulum ve Çalıştırma
 
 ### Gereksinimler
 
 - .NET 10 SDK
-- Ollama
-- İndirilen bir açık ağırlıklı model
+- LM Studio veya Ollama
 
-Varsayılan model:
-
-```powershell
-ollama pull qwen3:4b
-```
-
-Ollama otomatik çalışmıyorsa:
-
-```powershell
-ollama serve
-```
-
-Model kontrolü:
-
-```powershell
-ollama list
-```
+Bu geliştirme ortamında LM Studio zaten kurulu olduğu için ek kurulum gerekmez.
+Uygulama `lms daemon up` ve `lms server start` işlemlerini gerektiğinde otomatik
+çalıştırır. Yeni modeller web ekranındaki model yöneticisinden indirilebilir.
+Başka bir bilgisayarda model dosyasını çalıştırmak için desteklenen yerel
+runtime'lardan en az biri önceden kurulu olmalıdır.
 
 ### Restore
 
@@ -734,15 +765,15 @@ dotnet test Darklove.LocalAI.slnx
 ## 16. Jüri Demo Akışı
 
 1. Kök adresteki Türkçe web demo ekranını aç.
-2. Ekranın model durumunu ve gizlilik açıklamasını göster.
-3. Hazır örneklerden normal bir metni analiz et.
-4. `analysisMethod`, `modelScores` ve model adını açıkla.
-5. Ollama'yı durdurup `rule-based-fallback` davranışını göster.
-6. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
-7. Swagger UI'da `GET /api/health` ve API sözleşmesini göster.
-8. Boş metin göndererek ProblemDetails yanıtını göster.
-9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve 31 testi göster.
-10. Foundry Local için aynı istemci arayüzüne ikinci adaptör eklenebileceğini
+2. Model yöneticisinde bulunan yerel LLM'i, boyutunu ve quantization bilgisini göster.
+3. **Yükle ve kullan** ile modeli aktif hale getir.
+4. Hazır örneklerden normal bir metni analiz et.
+5. `analysisMethod`, `modelScores` ve model adını açıkla.
+6. Yerel runtime'ı durdurup `rule-based-fallback` davranışını göster.
+7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+8. Swagger UI'da `GET /api/health` ve model yönetim sözleşmesini göster.
+9. Terminalde `dotnet test Darklove.LocalAI.slnx` çalıştır ve 38 testi göster.
+10. Foundry Local için aynı istemci arayüzüne yeni adaptör eklenebileceğini
     anlat.
 
 ## 17. Bilinen Sınırlamalar
@@ -779,7 +810,7 @@ Proje ilk prototipten, açık ağırlıklı yerel model çalıştırabilen ve mo
 hatalarında güvenli biçimde çalışmaya devam eden hibrit bir uygulamaya
 dönüştürülmüştür.
 
-Ollama entegrasyonu gerçek model sınıflandırması sağlar. Kural tabanlı servis
+LM Studio ve Ollama entegrasyonları gerçek model sınıflandırması sağlar. Kural tabanlı servis
 ise açıklanabilirlik, kriz güvenliği ve çalışma sürekliliği görevlerini korur.
 Bu ayrım, Microsoft Foundry Local gibi başka çalışma zamanlarının kontrollü
 biçimde eklenmesini kolaylaştırır.
@@ -792,5 +823,9 @@ biçimde eklenmesini kolaylaştırır.
 - [ASP.NET Core Integration Tests](https://learn.microsoft.com/aspnet/core/test/integration-tests?view=aspnetcore-10.0)
 - [Ollama Chat API](https://docs.ollama.com/api/chat)
 - [Ollama Structured Outputs](https://docs.ollama.com/capabilities/structured-outputs)
+- [LM Studio yerel API sunucusu](https://lmstudio.ai/docs/developer/core/server)
+- [LM Studio model listesi](https://lmstudio.ai/docs/developer/rest/list)
+- [LM Studio model indirme](https://lmstudio.ai/docs/developer/rest/download)
+- [LM Studio structured output](https://lmstudio.ai/docs/developer/openai-compat/structured-output)
 - [Microsoft Foundry Local başlangıç](https://learn.microsoft.com/azure/foundry-local/get-started)
 - [T.C. 112 Acil Çağrı Merkezi](https://www.112.gov.tr/112-acm-projesi)

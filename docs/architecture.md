@@ -3,7 +3,7 @@
 ## Genel Bakış
 
 Darklove Local AI Module, .NET 10 üzerinde çalışan hibrit bir Minimal API'dir.
-Birincil analiz Ollama üzerinde çalışan açık ağırlıklı yerel modelle yapılır.
+Birincil analiz LM Studio veya Ollama üzerinde çalışan açık yerel modelle yapılır.
 Model hazır değilse mevcut kural tabanlı servis otomatik fallback sağlar.
 
 ```mermaid
@@ -15,8 +15,8 @@ flowchart TD
     E -- Evet --> F["Deterministik güvenli yanıt ve 112"]
     E -- Hayır --> G{"LocalModel etkin mi?"}
     G -- Hayır --> H["Kural tabanlı sonuç"]
-    G -- Evet --> I["OllamaOpenSourceModelClient"]
-    I --> J["localhost:11434 /api/chat"]
+    G -- Evet --> I["LM Studio veya Ollama istemcisi"]
+    I --> J["Loopback yerel model API'si"]
     J --> K{"Geçerli JSON model yanıtı?"}
     K -- Evet --> L["Model sonucu + güvenli mesaj"]
     K -- Hayır --> M["Kural tabanlı fallback"]
@@ -33,8 +33,8 @@ flowchart TD
 `wwwroot` içindeki Türkçe demo ekranı, model durumunu ve analiz sonuçlarını
 tarayıcıda gösterir. Ayrı bir frontend sunucusu veya derleme zinciri gerektirmez.
 `EmotionAnalysisEndpoints`, HTTP sözleşmesini ve doğrulamayı yönetir.
-`OpenSourceModelEndpoints`, Ollama ve seçilen modelin hazır olup olmadığını
-`GET /api/model/status` üzerinden gösterir.
+`OpenSourceModelEndpoints`, çalışma zamanı durumunu, yerel model kataloğunu,
+aktif model seçimini ve indirme işlerini yönetir.
 
 ### Hibrit İş Mantığı
 
@@ -50,10 +50,10 @@ verilen mesajları kod içinde tutar; modelin tavsiye üretmesine izin verilmez.
 
 ### Yerel Model Katmanı
 
-`OllamaOpenSourceModelClient`, `IHttpClientFactory` ile Ollama'nın `/api/chat`
-endpointine gider. İstek structured output JSON şeması içerir. Yanıt hem JSON
-olarak ayrıştırılır hem de izin verilen duygu ve skor aralıklarına göre
-doğrulanır.
+`LmStudioOpenSourceModelClient`, LM Studio REST API ile model listeler, yükler,
+indirir ve OpenAI uyumlu structured output endpointinden sınıflandırma alır.
+`OllamaOpenSourceModelClient` aynı analiz sözleşmesini Ollama `/api/chat` ile
+uygular. Yanıtlar izin verilen duygu ve skor aralıklarına göre doğrulanır.
 
 ### Yapılandırma
 
@@ -62,8 +62,10 @@ tanımlar. Uzak endpointler doğrulama aşamasında reddedilir.
 
 ## Tasarım Kararları
 
-- Yerel model çalışma zamanı olarak Ollama seçildi; farklı modeller tek API ile
-  değiştirilebilir.
+- Geliştirme profili mevcut LM Studio kurulumunu kullanır; Ollama alternatif
+  sağlayıcı olarak korunur.
+- `ILocalModelSelection` aktif model adını thread-safe biçimde tutar.
+- Model indirme girdileri katalog kimliği veya `huggingface.co` bağlantısıyla sınırlıdır.
 - Model entegrasyonu `IOpenSourceModelClient` arayüzünün arkasındadır.
 - Kriz güvenliği hiçbir koşulda modele devredilmez.
 - Model yalnızca sınıflandırma yapar; kullanıcı mesajları deterministiktir.

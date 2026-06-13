@@ -3,13 +3,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Models;
-using Microsoft.Extensions.Options;
 
 namespace Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
 
 public sealed class OllamaOpenSourceModelClient(
     HttpClient httpClient,
-    IOptions<LocalModelOptions> options) : IOpenSourceModelClient
+    ILocalModelSelection selection) : IOpenSourceModelClient
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
@@ -75,14 +74,12 @@ public sealed class OllamaOpenSourceModelClient(
         Yalnızca verilen JSON şemasına uyan JSON üret.
         """;
 
-    private readonly LocalModelOptions _options = options.Value;
-
     public async Task<OpenSourceModelClassification> ClassifyAsync(
         string userText,
         CancellationToken cancellationToken = default)
     {
         var request = new OllamaChatRequest(
-            _options.Model,
+            selection.Model,
             [
                 new OllamaMessage("system", SystemPrompt),
                 new OllamaMessage("user", userText)
@@ -121,7 +118,7 @@ public sealed class OllamaOpenSourceModelClient(
         {
             throw new LocalModelException(
                 "model-not-found",
-                $"'{_options.Model}' modeli Ollama içinde bulunamadı.");
+                $"'{selection.Model}' modeli Ollama içinde bulunamadı.");
         }
 
         if (!response.IsSuccessStatusCode)
@@ -173,7 +170,7 @@ public sealed class OllamaOpenSourceModelClient(
             {
                 return new OpenSourceModelStatus(
                     "ollama",
-                    _options.Model,
+                    selection.Model,
                     RuntimeAvailable: false,
                     ModelAvailable: false,
                     Status: "runtime-error");
@@ -183,12 +180,12 @@ public sealed class OllamaOpenSourceModelClient(
                 JsonOptions,
                 cancellationToken);
             var modelAvailable = tags?.Models?.Any(model =>
-                string.Equals(model.Name, _options.Model, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(model.Model, _options.Model, StringComparison.OrdinalIgnoreCase)) == true;
+                string.Equals(model.Name, selection.Model, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(model.Model, selection.Model, StringComparison.OrdinalIgnoreCase)) == true;
 
             return new OpenSourceModelStatus(
                 "ollama",
-                _options.Model,
+                selection.Model,
                 RuntimeAvailable: true,
                 ModelAvailable: modelAvailable,
                 Status: modelAvailable ? "ready" : "model-not-found");
@@ -198,7 +195,7 @@ public sealed class OllamaOpenSourceModelClient(
         {
             return new OpenSourceModelStatus(
                 "ollama",
-                _options.Model,
+                selection.Model,
                 RuntimeAvailable: false,
                 ModelAvailable: false,
                 Status: "runtime-unavailable");

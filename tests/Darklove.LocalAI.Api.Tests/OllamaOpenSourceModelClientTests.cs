@@ -91,19 +91,21 @@ public sealed class OllamaOpenSourceModelClientTests
 
     private static OllamaOpenSourceModelClient CreateClient(HttpMessageHandler handler)
     {
+        var options = Options.Create(new LocalModelOptions
+        {
+            Enabled = true,
+            Provider = "ollama",
+            Endpoint = "http://localhost:11434",
+            Model = "qwen3:4b",
+            TimeoutSeconds = 30
+        });
+
         return new OllamaOpenSourceModelClient(
             new HttpClient(handler)
             {
                 BaseAddress = new Uri("http://localhost:11434")
             },
-            Options.Create(new LocalModelOptions
-            {
-                Enabled = true,
-                Provider = "ollama",
-                Endpoint = "http://localhost:11434",
-                Model = "qwen3:4b",
-                TimeoutSeconds = 30
-            }));
+            new LocalModelSelection(options));
     }
 
     private static HttpResponseMessage JsonResponse(string json)

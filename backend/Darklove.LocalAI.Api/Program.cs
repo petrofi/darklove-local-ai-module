@@ -47,8 +47,9 @@ builder.Services
         "LocalModel:Endpoint güvenlik nedeniyle localhost, 127.0.0.1 veya ::1 olmalıdır.")
     .Validate(
         options => !options.Enabled ||
-            string.Equals(options.Provider, "ollama", StringComparison.OrdinalIgnoreCase),
-        "Bu sürümde desteklenen LocalModel:Provider değeri 'ollama'dır.")
+            string.Equals(options.Provider, "ollama", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(options.Provider, "lmstudio", StringComparison.OrdinalIgnoreCase),
+        "Desteklenen LocalModel:Provider değerleri 'ollama' ve 'lmstudio'dur.")
     .Validate(
         options => !options.Enabled || !string.IsNullOrWhiteSpace(options.Model),
         "LocalModel:Model boş bırakılamaz.")
@@ -58,16 +59,33 @@ builder.Services
     .ValidateOnStart();
 
 builder.Services.AddSingleton<IRuleBasedEmotionAnalysisService, RuleBasedEmotionAnalysisService>();
-builder.Services.AddHttpClient<IOpenSourceModelClient, OllamaOpenSourceModelClient>(
-    (serviceProvider, client) =>
-    {
-        var options = serviceProvider
-            .GetRequiredService<IOptions<LocalModelOptions>>()
-            .Value;
+builder.Services.AddSingleton<ILocalModelSelection, LocalModelSelection>();
 
-        client.BaseAddress = new Uri(options.Endpoint);
-        client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-    });
+var configuredProvider = builder.Configuration[
+    $"{LocalModelOptions.SectionName}:Provider"] ?? "ollama";
+
+if (string.Equals(configuredProvider, "lmstudio", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<ILocalModelRuntimeLauncher, LmStudioRuntimeLauncher>();
+    builder.Services.AddHttpClient<LmStudioOpenSourceModelClient>(
+        ConfigureLocalModelHttpClient);
+    builder.Services.AddScoped<IOpenSourceModelClient>(serviceProvider =>
+        serviceProvider.GetRequiredService<LmStudioOpenSourceModelClient>());
+    builder.Services.AddScoped<ILocalModelManager>(serviceProvider =>
+        serviceProvider.GetRequiredService<LmStudioOpenSourceModelClient>());
+}
+else
+{
+    builder.Services.AddHttpClient<OllamaOpenSourceModelClient>(
+        ConfigureLocalModelHttpClient);
+    builder.Services.AddHttpClient<OllamaLocalModelManager>(
+        ConfigureLocalModelHttpClient);
+    builder.Services.AddScoped<IOpenSourceModelClient>(serviceProvider =>
+        serviceProvider.GetRequiredService<OllamaOpenSourceModelClient>());
+    builder.Services.AddScoped<ILocalModelManager>(serviceProvider =>
+        serviceProvider.GetRequiredService<OllamaLocalModelManager>());
+}
+
 builder.Services.AddScoped<IEmotionAnalysisService, HybridEmotionAnalysisService>();
 
 var app = builder.Build();
@@ -101,6 +119,7 @@ app.UseStaticFiles(new StaticFileOptions
     {
         context.Context.Response.Headers.XContentTypeOptions = "nosniff";
         context.Context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Context.Response.Headers.CacheControl = "no-cache";
     }
 });
 
@@ -109,5 +128,17 @@ app.MapOpenSourceModelEndpoints();
 app.MapEmotionAnalysisEndpoints();
 
 app.Run();
+
+static void ConfigureLocalModelHttpClient(
+    IServiceProvider serviceProvider,
+    HttpClient client)
+{
+    var options = serviceProvider
+        .GetRequiredService<IOptions<LocalModelOptions>>()
+        .Value;
+
+    client.BaseAddress = new Uri(options.Endpoint);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+}
 
 public partial class Program;

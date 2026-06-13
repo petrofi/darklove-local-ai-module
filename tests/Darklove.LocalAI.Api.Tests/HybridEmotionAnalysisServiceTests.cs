@@ -89,17 +89,20 @@ public sealed class HybridEmotionAnalysisServiceTests
         IOpenSourceModelClient modelClient,
         bool enabled = true)
     {
+        var options = Options.Create(new LocalModelOptions
+        {
+            Enabled = enabled,
+            Provider = "ollama",
+            Endpoint = "http://localhost:11434",
+            Model = "qwen3:4b",
+            TimeoutSeconds = 30
+        });
+
         return new HybridEmotionAnalysisService(
             _ruleBasedService,
             modelClient,
-            Options.Create(new LocalModelOptions
-            {
-                Enabled = enabled,
-                Provider = "ollama",
-                Endpoint = "http://localhost:11434",
-                Model = "qwen3:4b",
-                TimeoutSeconds = 30
-            }),
+            new LocalModelSelection(options),
+            options,
             NullLogger<HybridEmotionAnalysisService>.Instance);
     }
 

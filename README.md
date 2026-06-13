@@ -4,9 +4,10 @@ Darklove Local AI Module, Microsoft Yaz Okulu kapsamında geliştirilen, Türkç
 metinlerde duygusal işaretleri yerel olarak analiz eden gizlilik odaklı bir
 .NET 10 Web API projesidir.
 
-Uygulama, Ollama üzerinden cihazda çalışan açık ağırlıklı modelleri kullanır.
-Varsayılan model `qwen3:4b` modelidir. Ollama veya model kullanılamıyorsa sistem
-otomatik olarak açıklanabilir kural tabanlı analize geri döner.
+Uygulama, LM Studio veya Ollama üzerinden cihazda çalışan açık modelleri kullanır.
+Geliştirme profili LM Studio'yu otomatik başlatabilir, bilgisayardaki modelleri
+web ekranında listeler ve seçilen modeli analiz için yükler. Çalışma zamanı veya
+model kullanılamıyorsa sistem açıklanabilir kural tabanlı analize geri döner.
 
 > Proje tıbbi teşhis koymaz ve profesyonel psikolojik desteğin yerine geçmez.
 > Kriz ifadeleri yapay zekâ modeline bırakılmaz; deterministik güvenlik
@@ -14,7 +15,10 @@ otomatik olarak açıklanabilir kural tabanlı analize geri döner.
 
 ## Özellikler
 
-- Ollama üzerinde Qwen, Mistral ve benzeri yerel modellerle çalışabilir.
+- LM Studio ve Ollama üzerinde Qwen, Granite, Mistral ve benzeri modellerle çalışabilir.
+- Bilgisayardaki LLM'leri web ekranında listeler ve aktif modeli değiştirebilir.
+- Model kataloğu kimliği veya Hugging Face bağlantısıyla indirme başlatabilir.
+- LM Studio indirmelerinde boyut, hız ve yüzde ilerlemesini gösterir.
 - Model yanıtını JSON şemasıyla sınırlar ve uygulama tarafında doğrular.
 - Model kapalıysa veya hata verirse kural tabanlı fallback kullanır.
 - Kriz ifadelerinde modeli çağırmadan güvenli destek ve `112` yönlendirmesi yapar.
@@ -25,12 +29,12 @@ otomatik olarak açıklanabilir kural tabanlı analize geri döner.
 - Kullanıcı metnini saklamaz veya loglamaz.
 - Kurulum gerektirmeyen Türkçe web demo ekranı içerir.
 - ProblemDetails, health check, model status, OpenAPI ve Swagger UI içerir.
-- Model, fallback, güvenlik, web arayüzü ve HTTP davranışlarını kapsayan 31 test içerir.
+- Model, fallback, güvenlik, web arayüzü ve HTTP davranışlarını kapsayan 38 test içerir.
 
 ## Teknolojiler
 
 - .NET 10 ve ASP.NET Core Minimal API
-- Ollama yerel model çalışma zamanı
+- LM Studio ve Ollama yerel model çalışma zamanları
 - JSON Schema structured output
 - `IHttpClientFactory`
 - HTML, CSS ve JavaScript ile aynı API içinde sunulan demo arayüzü
@@ -38,45 +42,43 @@ otomatik olarak açıklanabilir kural tabanlı analize geri döner.
 - xUnit ve `WebApplicationFactory`
 - GitHub Actions
 
-## Açık Model Kurulumu
+## Yerel Model Kullanımı
 
-1. [Ollama'yı indirip kur](https://ollama.com/download).
-2. Terminalde varsayılan modeli indir:
+Bu bilgisayarda LM Studio zaten kurulu olduğu için ek model yöneticisi kurulumu
+gerekmez. Uygulama geliştirme profilinde LM Studio arka plan servisini yerel
+`lms` aracıyla başlatır. Ardından `http://localhost:5019` adresindeki **Yerel
+model yöneticisi** bölümünden:
 
-```powershell
-ollama pull qwen3:4b
-```
+- Yüklü dil modellerini görebilir,
+- **Yükle ve kullan** ile aktif modeli değiştirebilir,
+- Katalog kimliği veya `huggingface.co` bağlantısıyla yeni model indirebilir,
+- İndirme ilerlemesini izleyebilirsin.
 
-3. Ollama otomatik başlamadıysa çalıştır:
+> Başka bir bilgisayarda LM Studio veya Ollama çalışma zamanlarından en az biri
+> kurulu olmalıdır. Web ekranı model indirmek için terminal komutu gerektirmez,
+> ancak model dosyasını çalıştıracak yerel runtime'ın yerini tutmaz.
 
-```powershell
-ollama serve
-```
-
-4. Modelin hazır olduğunu kontrol et:
-
-```powershell
-ollama list
-```
-
-Model seçimi `appsettings.json` içindeki `LocalModel` bölümünden yapılır:
+Geliştirme yapılandırması:
 
 ```json
 {
   "LocalModel": {
     "Enabled": true,
-    "Provider": "ollama",
-    "Endpoint": "http://localhost:11434",
-    "Model": "qwen3:4b",
-    "TimeoutSeconds": 90
+    "Provider": "lmstudio",
+    "Endpoint": "http://localhost:1234",
+    "Model": "qwen/qwen3-vl-30b",
+    "TimeoutSeconds": 300,
+    "AutoStartRuntime": true
   }
 }
 ```
 
-Başka bir Ollama modeli kullanmak için yalnızca model adını değiştir:
+Ollama kullanmak için:
 
 ```powershell
-$env:LocalModel__Model = "qwen3:1.7b"
+$env:LocalModel__Provider = "ollama"
+$env:LocalModel__Endpoint = "http://localhost:11434"
+$env:LocalModel__Model = "qwen3:4b"
 ```
 
 Kullanılacak modelin lisansını proje gereksinimlerine göre ayrıca kontrol et.
@@ -95,6 +97,7 @@ Uygulama başladıktan sonra:
 - Web demo: `http://localhost:5019`
 - Swagger UI: `http://localhost:5019/swagger`
 - Model durumu: `http://localhost:5019/api/model/status`
+- Model kataloğu: `http://localhost:5019/api/models/`
 - Health check: `http://localhost:5019/api/health`
 - OpenAPI: `http://localhost:5019/openapi/v1.json`
 
@@ -105,9 +108,10 @@ ifadeleri ve güvenli kullanıcı mesajını gösterir.
 
 `/api/model/status` yanıtındaki durumlar:
 
-- `ready`: Ollama ve seçilen model hazır.
-- `model-not-found`: Ollama çalışıyor fakat model indirilmemiş.
-- `runtime-unavailable`: Ollama çalışmıyor veya ulaşılamıyor.
+- `ready`: Seçilen model yüklü ve kullanıma hazır.
+- `model-not-loaded`: Model diskte var fakat henüz belleğe yüklenmedi.
+- `model-not-found`: Seçilen model yerel katalogda bulunamadı.
+- `runtime-unavailable`: LM Studio veya Ollama çalışmıyor ya da ulaşılamıyor.
 - `disabled`: Model kullanımı yapılandırmada kapalı.
 
 ## Test
@@ -117,9 +121,8 @@ dotnet build Darklove.LocalAI.slnx
 dotnet test Darklove.LocalAI.slnx
 ```
 
-Testler gerçek bir model indirmeden sahte Ollama HTTP yanıtlarıyla model
-sözleşmesini doğrular. Gerçek model testi için Ollama ve seçilen model ayrıca
-çalıştırılmalıdır.
+Testler gerçek model indirmeden sahte LM Studio ve Ollama HTTP yanıtlarıyla
+listeleme, seçme, structured output ve indirme sözleşmelerini doğrular.
 
 ## API Örneği
 
@@ -148,7 +151,7 @@ Model kullanıldığında örnek yanıt:
   "needsSupportWarning": false,
   "motivationMessage": "Bugün zor geçiyor olabilir...",
   "analysisMethod": "open-source-model",
-  "model": "qwen3:4b",
+  "model": "qwen/qwen3-vl-30b",
   "modelScores": {
     "sadness": 0.86,
     "anxiety": 0.08,
@@ -164,7 +167,7 @@ Fallback kullanılırsa:
 ```json
 {
   "analysisMethod": "rule-based-fallback",
-  "model": "qwen3:4b",
+  "model": "qwen/qwen3-vl-30b",
   "fallbackReason": "model-unavailable"
 }
 ```
@@ -184,7 +187,7 @@ aralığındaki duygu skorlarını gösterir.
 ## Proje Yapısı
 
 ```text
-backend/   API, web demo, hibrit analiz servisi, Ollama istemcisi ve güvenlik kuralları
+backend/   API, web demo, model yöneticisi, LM Studio/Ollama istemcileri ve güvenlik kuralları
 tests/     Kural, model istemcisi, fallback ve HTTP entegrasyon testleri
 docs/      Mimari, yol haritası, günlük ve teknik rapor
 .github/   GitHub Actions CI iş akışı

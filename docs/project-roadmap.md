@@ -21,6 +21,10 @@
 - [x] Kriz ifadelerinde modeli devre dışı bırakan güvenlik politikası
 - [x] Türkçe, erişilebilir ve mobil uyumlu web demo ekranı
 - [x] Demo ekranı ve statik dosyalar için HTTP entegrasyon testleri
+- [x] LM Studio model kataloğu ve structured output istemcisi
+- [x] Web üzerinden model seçme, yükleme ve indirme
+- [x] Model indirme ilerleme takibi
+- [x] LM Studio çalışma zamanını yerel CLI ile otomatik başlatma
 
 ## Sonraki Faz: Veri ve Ölçüm
 

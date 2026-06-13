@@ -13,4 +13,8 @@ public sealed class LocalModelOptions
     public string Model { get; set; } = "qwen3:4b";
 
     public int TimeoutSeconds { get; set; } = 90;
+
+    public bool AutoStartRuntime { get; set; }
+
+    public string? RuntimeCommand { get; set; }
 }

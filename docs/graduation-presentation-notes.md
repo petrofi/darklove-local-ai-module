@@ -19,7 +19,8 @@ aşamasında test ve hata analizi yapmayı zorlaştırır.
 ## Çözüm
 
 - Metin yerel API içinde işlenir.
-- Ollama üzerinde çalışan açık ağırlıklı model kullanılır.
+- LM Studio veya Ollama üzerinde çalışan açık model kullanılır.
+- Modeller web ekranından listelenebilir, seçilebilir ve indirilebilir.
 - Model kullanılamazsa açıklanabilir kural tabanlı fallback çalışır.
 - Sonuçta analiz yöntemi, model ve iki ayrı skor kaynağı gösterilir.
 - Riskli metin normal motivasyon akışından ayrılır.
@@ -27,16 +28,16 @@ aşamasında test ve hata analizi yapmayı zorlaştırır.
 
 ## Dürüst Teknik Konumlandırma
 
-Bu sürüm Ollama üzerinde gerçek bir yerel dil modeli çalıştırabilir. Ancak model
+Bu sürüm LM Studio veya Ollama üzerinde gerçek bir yerel dil modeli çalıştırabilir. Ancak model
 tek güvenlik kaynağı değildir: kriz tespiti ve kullanıcı mesajları deterministik
-kodda kalır. Ollama kapalıysa sistem kural tabanlı fallback ile çalışmaya devam
+kodda kalır. Yerel runtime kapalıysa sistem kural tabanlı fallback ile çalışmaya devam
 eder.
 
 ## Kullanılan Teknolojiler
 
 - C# ve .NET 10
 - ASP.NET Core Minimal API
-- Ollama ve Qwen3
+- LM Studio, Ollama ve Qwen3
 - JSON Schema structured output
 - Türkçe web demo ekranı
 - OpenAPI ve Swagger UI
@@ -48,12 +49,12 @@ eder.
 1. Problemi ve gizlilik gerekçesini anlat.
 2. Mimari diyagramı göster.
 3. Kök adresteki Türkçe web demo ekranını aç.
-4. Ekranın üstündeki model durumunun `ready` olduğunu göster.
-5. Modelin kural listesinde olmayan bir metni sınıflandırmasını göster.
-6. Ollama'yı kapatıp `rule-based-fallback` davranışını göster.
+4. Yerel model yöneticisinde bilgisayardaki modeli ve boyutunu göster.
+5. Modeli yükleyip aktif hale getir.
+6. Modelin kural listesinde olmayan bir metni sınıflandırmasını göster.
 7. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
 8. Swagger UI ile API sözleşmesini kısaca göster.
-9. `dotnet test` sonucunda 31 testin geçtiğini göster.
+9. `dotnet test` sonucunda 38 testin geçtiğini göster.
 10. Foundry Local adaptörünü sonraki adım olarak anlat.
 
 ## Önerilen Demo Metinleri
@@ -91,8 +92,8 @@ endpointler oluşturmayı sağlar.
 
 ### Hangi model kullanılıyor?
 
-Varsayılan olarak Ollama üzerindeki `qwen3:4b` kullanılır. Yapılandırmadaki model
-adı değiştirilerek başka bir uyumlu yerel model seçilebilir.
+Geliştirme profilinde LM Studio kullanılır. Bilgisayardaki model web ekranından
+seçilebilir; Ollama da yapılandırmayla alternatif sağlayıcı olarak kullanılabilir.
 
 ### Confidence gerçek olasılık mı?
 

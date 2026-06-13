@@ -39,7 +39,8 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         Assert.Contains("Darklove Local AI", html);
         Assert.Contains("analysis-form", html);
-        Assert.Contains("/app.js", html);
+        Assert.Contains("model-download-form", html);
+        Assert.Contains("/app.js?v=3", html);
     }
 
     [Theory]
@@ -164,6 +165,36 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("disabled", document.RootElement.GetProperty("status").GetString());
         Assert.False(document.RootElement.GetProperty("runtimeAvailable").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ModelsEndpoint_ReturnsEmptyDisabledCatalog_WhenModelsAreDisabled()
+    {
+        var response = await _client.GetAsync("/api/models/");
+        var document = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("disabled", document.RootElement.GetProperty("status").GetString());
+        Assert.Empty(document.RootElement.GetProperty("models").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task SelectModelEndpoint_ReturnsProblemDetails_WhenModelsAreDisabled()
+    {
+        var response = await _client.PutAsJsonAsync(
+            "/api/models/selected",
+            new { model = "qwen/qwen3-4b" });
+        var document = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync());
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(
+            "application/problem+json",
+            response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(
+            "model-disabled",
+            document.RootElement.GetProperty("reasonCode").GetString());
     }
 
     [Fact]

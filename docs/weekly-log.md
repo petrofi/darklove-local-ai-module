@@ -109,6 +109,27 @@ kullanabileceği sade bir demo ekranı hazırlamak.
 - Kök sayfa ve statik dosyalar için entegrasyon testleri eklendi.
 - Toplam 31 test başarıyla çalıştırıldı.
 
+## 7. Hafta: Web Model Yöneticisi
+
+### Hedef
+
+Bilgisayardaki mevcut modelleri web ekranında görünür yapmak ve terminal
+komutu gerektirmeden model seçme ve indirme akışı sağlamak.
+
+### Tamamlananlar
+
+- Bilgisayardaki modellerin LM Studio altında olduğu tespit edildi.
+- LM Studio REST API ve OpenAI uyumlu structured output entegrasyonu eklendi.
+- LM Studio servisini mevcut `lms` aracıyla otomatik başlatma desteği eklendi.
+- Yalnızca çalışabilir LLM'lerin listelenmesi sağlandı; embedding ve yardımcı
+  görsel dosyaları ayrı model gibi gösterilmedi.
+- Aktif model seçimi thread-safe uygulama durumuna taşındı.
+- Model yükleme, indirme başlatma ve indirme ilerleme endpointleri eklendi.
+- Web arayüzüne model kartları, boyut/quantization bilgileri ve ilerleme çubuğu eklendi.
+- İndirme URL'leri güvenlik için yalnızca `huggingface.co` alan adıyla sınırlandı.
+- Statik dosya önbelleğinin eski JavaScript göstermemesi için sürümleme eklendi.
+- Toplam 38 test başarıyla çalıştırıldı.
+
 ## Sonraki Adım
 
 Gerçek cihaz üzerinde farklı model boyutlarının hız ve doğruluk ölçümünü yapmak,

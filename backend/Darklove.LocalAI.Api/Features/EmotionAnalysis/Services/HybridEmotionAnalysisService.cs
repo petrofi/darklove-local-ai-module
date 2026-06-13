@@ -7,6 +7,7 @@ namespace Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
 public sealed class HybridEmotionAnalysisService(
     IRuleBasedEmotionAnalysisService ruleBasedService,
     IOpenSourceModelClient modelClient,
+    ILocalModelSelection selection,
     IOptions<LocalModelOptions> options,
     ILogger<HybridEmotionAnalysisService> logger) : IEmotionAnalysisService
 {
@@ -40,7 +41,7 @@ public sealed class HybridEmotionAnalysisService(
                 MotivationMessage =
                     EmotionResponsePolicy.GetMotivationMessage(modelResult.DetectedEmotion),
                 AnalysisMethod = "open-source-model",
-                Model = _options.Model,
+                Model = selection.Model,
                 ModelScores = modelResult.Scores,
                 FallbackReason = null
             };
@@ -55,7 +56,7 @@ public sealed class HybridEmotionAnalysisService(
             return ruleBasedResult with
             {
                 AnalysisMethod = "rule-based-fallback",
-                Model = _options.Model,
+                Model = selection.Model,
                 FallbackReason = exception.ReasonCode
             };
         }
@@ -67,7 +68,7 @@ public sealed class HybridEmotionAnalysisService(
             return ruleBasedResult with
             {
                 AnalysisMethod = "rule-based-fallback",
-                Model = _options.Model,
+                Model = selection.Model,
                 FallbackReason = "model-timeout"
             };
         }
@@ -80,7 +81,7 @@ public sealed class HybridEmotionAnalysisService(
             return ruleBasedResult with
             {
                 AnalysisMethod = "rule-based-fallback",
-                Model = _options.Model,
+                Model = selection.Model,
                 FallbackReason = "model-unavailable"
             };
         }
@@ -93,7 +94,7 @@ public sealed class HybridEmotionAnalysisService(
             return ruleBasedResult with
             {
                 AnalysisMethod = "rule-based-fallback",
-                Model = _options.Model,
+                Model = selection.Model,
                 FallbackReason = "model-error"
             };
         }

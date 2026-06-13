@@ -7,8 +7,8 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
   <title>Darklove Local AI</title>
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/styles.css?v=3">
+  <script src="/app.js?v=3" defer></script>
 </head>
 <body>
   <div class="page-shell">
@@ -162,6 +162,105 @@
         </article>
       </section>
 
+      <section class="model-section" aria-labelledby="model-manager-title">
+        <div class="model-section-heading">
+          <div>
+            <p class="section-label">Yerel model yöneticisi</p>
+            <h2 id="model-manager-title">Bilgisayarındaki modelleri seç veya yenisini indir.</h2>
+            <p>
+              Modeller LM Studio ya da Ollama üzerinden yerel olarak yönetilir.
+              İndirme tamamlandığında model bu listede görünür.
+            </p>
+          </div>
+          <button id="refresh-models-button" class="secondary-button compact-button" type="button">
+            Listeyi yenile
+          </button>
+        </div>
+
+        <div class="model-manager-grid">
+          <article class="model-library-card">
+            <div class="model-card-heading">
+              <div>
+                <h3>Yüklü modeller</h3>
+                <p id="model-provider-label">Yerel çalışma zamanı kontrol ediliyor.</p>
+              </div>
+              <span id="model-count" class="model-count">0 model</span>
+            </div>
+
+            <div id="model-list" class="model-list" aria-live="polite">
+              <div class="model-list-placeholder">
+                <div class="mini-loader" aria-hidden="true"></div>
+                <span>Model kataloğu okunuyor.</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="model-download-card">
+            <p class="section-label">Yeni model</p>
+            <h3>Modeli doğrudan indir</h3>
+            <p class="model-download-copy">
+              LM Studio katalog kimliği yazabilir veya doğrudan
+              <code>huggingface.co</code> model bağlantısı kullanabilirsin.
+            </p>
+
+            <form id="model-download-form">
+              <label for="download-model-id">Model kimliği veya Hugging Face bağlantısı</label>
+              <input
+                id="download-model-id"
+                name="model"
+                type="text"
+                maxlength="500"
+                required
+                autocomplete="off"
+                placeholder="Örneğin: qwen/qwen3-4b">
+
+              <label for="download-quantization">Quantization</label>
+              <select id="download-quantization" name="quantization">
+                <option value="">Donanıma göre otomatik</option>
+                <option value="Q4_K_M">Q4_K_M</option>
+                <option value="Q5_K_M">Q5_K_M</option>
+                <option value="Q8_0">Q8_0</option>
+              </select>
+
+              <button id="download-model-button" class="primary-button" type="submit">
+                <span>Modeli indir</span>
+                <span class="button-arrow" aria-hidden="true">↓</span>
+              </button>
+            </form>
+
+            <div class="model-suggestions" aria-label="Önerilen model kimlikleri">
+              <span>Hızlı seçim:</span>
+              <button type="button" data-model-suggestion="qwen/qwen3-4b">Qwen3 4B</button>
+              <button type="button" data-model-suggestion="ibm/granite-4-micro">Granite 4 Micro</button>
+              <button type="button" data-model-suggestion="mistralai/mistral-7b-instruct-v0.3">
+                Mistral 7B
+              </button>
+            </div>
+
+            <div id="download-progress" class="download-progress" hidden aria-live="polite">
+              <div class="download-progress-heading">
+                <strong id="download-status-text">İndirme hazırlanıyor.</strong>
+                <span id="download-percent">0%</span>
+              </div>
+              <div
+                class="download-track"
+                role="progressbar"
+                aria-label="Model indirme ilerlemesi"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0">
+                <span id="download-progress-fill"></span>
+              </div>
+              <p id="download-detail"></p>
+            </div>
+
+            <p class="model-storage-note">
+              Model dosyaları büyük olabilir. İndirmeden önce boş disk alanını kontrol et.
+            </p>
+          </article>
+        </div>
+      </section>
+
       <section class="system-section" aria-labelledby="system-title">
         <div>
           <p class="section-label">Sistem durumu</p>
@@ -171,7 +270,7 @@
           <article>
             <span class="system-number">01</span>
             <h3>Yerel model</h3>
-            <p>Ollama üzerindeki açık ağırlıklı model metni cihazda sınıflandırır.</p>
+            <p>LM Studio veya Ollama üzerindeki açık ağırlıklı model metni cihazda sınıflandırır.</p>
           </article>
           <article>
             <span class="system-number">02</span>
@@ -188,7 +287,7 @@
     </main>
 
     <footer>
-      <p>Microsoft Yaz Okulu projesi · .NET 10 · Ollama · Açık ağırlıklı modeller</p>
+      <p>Microsoft Yaz Okulu projesi · .NET 10 · LM Studio / Ollama · Açık modeller</p>
       <p>Bu uygulama tıbbi teşhis aracı değildir.</p>
     </footer>
   </div>
