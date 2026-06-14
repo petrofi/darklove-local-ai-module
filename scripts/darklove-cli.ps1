@@ -244,6 +244,20 @@ function Show-Help {
     Write-Host ""
 }
 
+function Show-DarkloveBanner {
+    Write-Host "+--------------------------------------------------------------------+" -ForegroundColor Magenta
+    Write-Host "|                                                                    |" -ForegroundColor Magenta
+    Write-Host "|  DDDD    A   RRRR  K  K  L      OOO  V   V  EEEEE                  |" -ForegroundColor Magenta
+    Write-Host "|  D   D  A A  R   R K K   L     O   O V   V  E                      |" -ForegroundColor Magenta
+    Write-Host "|  D   D AAAAA RRRR  KK    L     O   O V   V  EEEE                   |" -ForegroundColor Magenta
+    Write-Host "|  D   D A   A R R   K K   L     O   O  V V   E                      |" -ForegroundColor Magenta
+    Write-Host "|  DDDD  A   A R  RR K  K  LLLLL  OOO    V    EEEEE                  |" -ForegroundColor Magenta
+    Write-Host "|                                                                    |" -ForegroundColor Magenta
+    Write-Host "+--------------------------------------------------------------------+" -ForegroundColor Magenta
+    Write-Host "                 Yerel ve guvenli yapay zeka" -ForegroundColor DarkCyan
+    Write-Host ""
+}
+
 try {
     if ($Check) {
         if ($null -eq (Get-Command dotnet -ErrorAction SilentlyContinue)) {
@@ -254,6 +268,8 @@ try {
         exit 0
     }
 
+    Clear-Host
+    Show-DarkloveBanner
     Start-DarkloveApi
 
     if (-not [string]::IsNullOrWhiteSpace($Once)) {
@@ -261,8 +277,6 @@ try {
         exit 0
     }
 
-    Clear-Host
-    Write-Host "Darklove Local AI - CMD" -ForegroundColor Magenta
     Write-Host "Metninizi yazın. Komutlar için 'yardım', çıkmak için 'çıkış' yazın."
     Write-Host ""
 
