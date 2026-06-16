@@ -141,7 +141,6 @@ function Get-EmotionLabel {
 
 function Show-Analysis {
     param(
-        [Parameter(Mandatory)]
         [string]$Text,
         [switch]$FromConversation
     )
