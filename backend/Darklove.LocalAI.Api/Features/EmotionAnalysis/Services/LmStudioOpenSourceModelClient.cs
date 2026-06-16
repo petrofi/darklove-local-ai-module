@@ -82,6 +82,8 @@ public sealed partial class LmStudioOpenSourceModelClient(
         string userText,
         CancellationToken cancellationToken = default)
     {
+        await EnsureRuntimeAvailableAsync(cancellationToken);
+
         var request = new
         {
             model = selection.Model,
@@ -169,6 +171,35 @@ public sealed partial class LmStudioOpenSourceModelClient(
         }
 
         return ValidateOutput(output);
+    }
+
+    private async Task EnsureRuntimeAvailableAsync(CancellationToken cancellationToken)
+    {
+        if (await TryGetCatalogResponseAsync(cancellationToken) is not null)
+        {
+            return;
+        }
+
+        if (!await runtimeLauncher.EnsureRunningAsync(cancellationToken))
+        {
+            throw new LocalModelException(
+                "model-unavailable",
+                "LM Studio çalışma zamanı başlatılamadı.");
+        }
+
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            await Task.Delay(250, cancellationToken);
+
+            if (await TryGetCatalogResponseAsync(cancellationToken) is not null)
+            {
+                return;
+            }
+        }
+
+        throw new LocalModelException(
+            "model-unavailable",
+            "LM Studio çalışma zamanı başlatıldı ancak HTTP API hazır olmadı.");
     }
 
     public async Task<OpenSourceModelStatus> GetStatusAsync(

@@ -55,6 +55,11 @@ public sealed class LmStudioOpenSourceModelClientTests
         string? requestBody = null;
         var client = CreateClient(async request =>
         {
+            if (request.Method == HttpMethod.Get)
+            {
+                return CatalogResponse();
+            }
+
             requestBody = await request.Content!.ReadAsStringAsync();
 
             return JsonResponse(
@@ -81,6 +86,47 @@ public sealed class LmStudioOpenSourceModelClientTests
             "qwen/qwen3-vl-30b",
             document.RootElement.GetProperty("model").GetString());
         Assert.True(document.RootElement.TryGetProperty("response_format", out _));
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_StartsLmStudioRuntime_WhenServerIsClosed()
+    {
+        var requestPaths = new List<string>();
+        var firstCatalogAttempt = true;
+        var runtimeLauncher = new FakeRuntimeLauncher(started: true);
+        var client = CreateClient(request =>
+        {
+            requestPaths.Add(request.RequestUri!.AbsolutePath);
+
+            if (request.Method == HttpMethod.Get && firstCatalogAttempt)
+            {
+                firstCatalogAttempt = false;
+                throw new HttpRequestException("Server kapalı.");
+            }
+
+            return Task.FromResult(request.Method == HttpMethod.Get
+                ? CatalogResponse()
+                : JsonResponse(
+                    """
+                    {
+                      "choices": [
+                        {
+                          "message": {
+                            "content": "{\"detectedEmotion\":\"neutral\",\"confidence\":0.95,\"scores\":{\"sadness\":0.05,\"anxiety\":0.03,\"hope\":0.04,\"anger\":0.02,\"neutral\":0.95}}"
+                          }
+                        }
+                      ]
+                    }
+                    """));
+        }, runtimeLauncher: runtimeLauncher);
+
+        var result = await client.ClassifyAsync("naber");
+
+        Assert.Equal("neutral", result.DetectedEmotion);
+        Assert.Equal(1, runtimeLauncher.CallCount);
+        Assert.Equal(
+            ["/api/v1/models", "/api/v1/models", "/v1/chat/completions"],
+            requestPaths);
     }
 
     [Fact]
@@ -160,16 +206,19 @@ public sealed class LmStudioOpenSourceModelClientTests
 
     private static LmStudioOpenSourceModelClient CreateClient(
         Func<HttpRequestMessage, HttpResponseMessage> handler,
-        ILocalModelSelection? selection = null)
+        ILocalModelSelection? selection = null,
+        ILocalModelRuntimeLauncher? runtimeLauncher = null)
     {
         return CreateClient(
             request => Task.FromResult(handler(request)),
-            selection);
+            selection,
+            runtimeLauncher);
     }
 
     private static LmStudioOpenSourceModelClient CreateClient(
         Func<HttpRequestMessage, Task<HttpResponseMessage>> handler,
-        ILocalModelSelection? selection = null)
+        ILocalModelSelection? selection = null,
+        ILocalModelRuntimeLauncher? runtimeLauncher = null)
     {
         return new LmStudioOpenSourceModelClient(
             new HttpClient(new StubHttpMessageHandler(handler))
@@ -177,7 +226,7 @@ public sealed class LmStudioOpenSourceModelClientTests
                 BaseAddress = new Uri("http://localhost:1234")
             },
             selection ?? CreateSelection(),
-            new FakeRuntimeLauncher());
+            runtimeLauncher ?? new FakeRuntimeLauncher());
     }
 
     private static ILocalModelSelection CreateSelection()
@@ -199,11 +248,35 @@ public sealed class LmStudioOpenSourceModelClientTests
         };
     }
 
-    private sealed class FakeRuntimeLauncher : ILocalModelRuntimeLauncher
+    private static HttpResponseMessage CatalogResponse()
     {
+        return JsonResponse(
+            """
+            {
+              "models": [
+                {
+                  "type": "llm",
+                  "key": "qwen/qwen3-vl-30b",
+                  "display_name": "Qwen3 VL 30B",
+                  "size_bytes": 19640366937,
+                  "params_string": "30B-A3B",
+                  "quantization": { "name": "Q4_K_M" },
+                  "loaded_instances": [{ "id": "qwen/qwen3-vl-30b" }],
+                  "capabilities": { "vision": true }
+                }
+              ]
+            }
+            """);
+    }
+
+    private sealed class FakeRuntimeLauncher(bool started = false) : ILocalModelRuntimeLauncher
+    {
+        public int CallCount { get; private set; }
+
         public Task<bool> EnsureRunningAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(false);
+            CallCount++;
+            return Task.FromResult(started);
         }
     }
 
