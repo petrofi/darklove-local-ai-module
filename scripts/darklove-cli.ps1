@@ -140,9 +140,16 @@ function Get-EmotionLabel {
 }
 
 function Show-Analysis {
-    param([Parameter(Mandatory)][string]$Text)
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text,
+        [switch]$FromConversation
+    )
 
     if ([string]::IsNullOrWhiteSpace($Text)) {
+        Write-Host ""
+        Write-Host "Analiz edilecek sohbet geçmişi veya metin bulunamadı." -ForegroundColor Yellow
+        Write-Host ""
         return
     }
 
@@ -162,6 +169,9 @@ function Show-Analysis {
         }
 
         Write-Host ""
+        if ($FromConversation) {
+            Write-Host "Sohbet geçmişi üzerinden analiz" -ForegroundColor DarkCyan
+        }
         Write-Host "Duygu : $emotion" -ForegroundColor Cyan
         Write-Host "Güven : %$confidence"
 
@@ -177,6 +187,33 @@ function Show-Analysis {
         Write-Host "Analiz yapılamadı: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
     }
+}
+
+function Get-AnalysisTranscript {
+    param([string]$ExtraText)
+
+    $lines = New-Object 'System.Collections.Generic.List[string]'
+
+    foreach ($message in $script:chatHistory) {
+        $label = if ($message.role -eq "assistant") { "Darklove" } else { "Kullanıcı" }
+        $content = ([string]$message.content).Trim()
+
+        if (-not [string]::IsNullOrWhiteSpace($content)) {
+            $lines.Add("${label}: $content")
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ExtraText)) {
+        $lines.Add("Kullanıcı: $($ExtraText.Trim())")
+    }
+
+    $transcript = ($lines -join "`n").Trim()
+
+    if ($transcript.Length -le 2000) {
+        return $transcript
+    }
+
+    return $transcript.Substring($transcript.Length - 2000)
 }
 
 function Show-Chat {
@@ -271,7 +308,8 @@ function Show-Status {
 function Show-Help {
     Write-Host ""
     Write-Host "Komutlar" -ForegroundColor Cyan
-    Write-Host "  analiz <metin>  İstersen metni duygu açısından analiz eder."
+    Write-Host "  analiz          O ana kadarki sohbetin tamamını duygu açısından analiz eder."
+    Write-Host "  analiz <metin>  Sohbet geçmişiyle birlikte ek metni analiz eder."
     Write-Host "  modeller  Bilgisayardaki yerel modelleri gösterir."
     Write-Host "  durum     Model sağlayıcısının durumunu gösterir."
     Write-Host "  şartlar   Kullanım şartları ve güvenlik notlarını gösterir."
@@ -290,7 +328,7 @@ function Show-Terms {
     Write-Host "- Model güven değerleri klinik olasılık değildir."
     Write-Host "- Kriz veya kendine zarar verme riski varsa güvendiğin birine ulaş ve acil durumda 112'yi ara."
     Write-Host "- Sohbet yerel API ve yerel model üzerinden çalışır; bu MVP kullanıcı metnini veritabanına kaydetmez."
-    Write-Host "- Duygu analizi istiyorsan açıkça 'analiz <metin>' komutunu kullan."
+    Write-Host "- Duygu analizi istiyorsan açıkça 'analiz' veya 'analiz <metin>' komutunu kullan."
     Write-Host ""
 }
 
@@ -339,7 +377,7 @@ try {
         exit 0
     }
 
-    Write-Host "Mesajınızı yazın. Duygu analizi için 'analiz <metin>', komutlar için 'yardım' yazın."
+    Write-Host "Mesajınızı yazın. Sohbet analizi için 'analiz', komutlar için 'yardım' yazın."
     Write-Host ""
 
     while ($true) {
@@ -356,12 +394,20 @@ try {
             }
             "modeller" { Show-Models; continue }
             "durum" { Show-Status; continue }
+            "analiz" {
+                Show-Analysis (Get-AnalysisTranscript "") -FromConversation
+                continue
+            }
+            "duygu" {
+                Show-Analysis (Get-AnalysisTranscript "") -FromConversation
+                continue
+            }
             { $_.StartsWith("analiz ") } {
-                Show-Analysis $trimmedInput.Substring(7)
+                Show-Analysis (Get-AnalysisTranscript $trimmedInput.Substring(7)) -FromConversation
                 continue
             }
             { $_.StartsWith("duygu ") } {
-                Show-Analysis $trimmedInput.Substring(6)
+                Show-Analysis (Get-AnalysisTranscript $trimmedInput.Substring(6)) -FromConversation
                 continue
             }
             default { Show-Chat $inputText }

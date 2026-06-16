@@ -212,8 +212,10 @@ adresinde başlatır ve health endpointi hazır olana kadar bekler.
 Varsayılan terminal davranışı sohbet modudur. Kullanıcı mesajı `/api/chat`
 endpointine gönderilir ve model adı, analiz yöntemi veya güven yüzdesi gibi
 teknik alanlar terminalde gösterilmez. Duygu analizi istenirse kullanıcı
-`analiz <metin>` komutunu açıkça yazar; bu durumda mevcut
-`/api/emotion/analyze` endpointi kullanılır.
+`analiz` komutunu açıkça yazar; bu durumda o ana kadarki sohbet geçmişi
+transcript haline getirilir ve mevcut `/api/emotion/analyze` endpointi
+kullanılır. `analiz <metin>` komutu ise sohbet geçmişine ek olarak verilen
+metni de analize dahil eder.
 
 İstemci `analiz`, `modeller`, `durum`, `şartlar`, `yardım` ve `çıkış`
 komutlarını destekler. `şartlar`, tıbbi teşhis olmadığı ve model güven
@@ -803,7 +805,8 @@ projesi otomatik derlenir. Terminal açıldıktan sonra doğrudan mesaj yazılı
 Yardımcı komutlar:
 
 ```text
-analiz <metin>  Metni duygu açısından analiz eder.
+analiz          O ana kadarki sohbeti duygu açısından analiz eder.
+analiz <metin>  Sohbet geçmişiyle birlikte ek metni analiz eder.
 modeller  Bilgisayardaki yerel modelleri listeler.
 durum     Yerel model sağlayıcısının durumunu gösterir.
 şartlar   Kullanım şartlarını ve güvenlik notlarını gösterir.

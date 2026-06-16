@@ -143,7 +143,8 @@ sade metin tabanlı sürümü hazırlamak.
 - API kapalıysa mevcut çıktıyı kullanan, ilk çalıştırmada yalnızca API projesini
   derleyip otomatik başlatan istemci yazıldı.
 - Varsayılan terminal davranışı sade yerel sohbet olacak şekilde değiştirildi.
-- Duygu analizi açık `analiz <metin>` komutuna taşındı.
+- Duygu analizi açık `analiz` komutuna taşındı; komut sohbet geçmişinin
+  tamamını, varsa ek metinle birlikte değerlendirir.
 - `modeller`, `durum`, `şartlar`, `yardım` ve `çıkış` komutları eklendi.
 - Tek seferlik kullanım için `-Once` seçeneği eklendi.
 - CMD istemcisinin yalnızca kendi başlattığı API sürecini kapatması sağlandı.

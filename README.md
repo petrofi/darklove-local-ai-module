@@ -112,8 +112,10 @@ darklove.cmd
 ```
 
 Mesajınızı doğrudan terminale yazabilirsiniz; Darklove normal bir sohbet
-asistanı gibi yanıt verir. Duygu analizi raporu istiyorsanız açıkça
-`analiz <metin>` yazın. `şartlar` kullanım şartlarını, `modeller`
+asistanı gibi yanıt verir. Duygu analizi raporu istiyorsanız `analiz`
+yazın; bu komut o ana kadarki sohbet geçmişini analiz eder. `analiz <metin>`
+yazarsanız sohbet geçmişiyle birlikte ek metin de analize katılır. `şartlar`
+kullanım şartlarını, `modeller`
 bilgisayardaki yerel modelleri, `durum` aktif sağlayıcıyı gösterir; `çıkış`
 programı kapatır. API çalışmıyorsa istemci onu otomatik olarak hazırlar ve
 başlatır. İstemci yalnızca kendi başlattığı API sürecini çıkışta kapatır.
