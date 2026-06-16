@@ -1,5 +1,6 @@
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Models;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
+using Darklove.LocalAI.Api.Features.EmotionAnalysis.Contracts;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -122,6 +123,14 @@ public sealed class HybridEmotionAnalysisServiceTests
         }
 
         public int ClassifyCallCount { get; private set; }
+
+        public Task<string> ChatAsync(
+            string userText,
+            IReadOnlyList<ChatMessage> history,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult("Sohbet yanıtı.");
+        }
 
         public Task<OpenSourceModelClassification> ClassifyAsync(
             string userText,

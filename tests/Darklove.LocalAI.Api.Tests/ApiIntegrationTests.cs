@@ -87,6 +87,20 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
         Assert.Contains("112", result.MotivationMessage);
     }
 
+    [Fact]
+    public async Task ChatEndpoint_ReturnsFriendlyDisabledMessage_WhenModelsAreDisabledForTests()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/chat",
+            new ChatRequest("naber nasıl gidiyor"));
+        var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal("local-model-disabled", result.AnalysisMethod);
+        Assert.Contains("yerel sohbet modeli", result.AssistantMessage);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

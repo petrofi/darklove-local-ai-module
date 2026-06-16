@@ -142,8 +142,9 @@ sade metin tabanlı sürümü hazırlamak.
 - `darklove.cmd` ile çift tıklanarak açılan terminal girişi eklendi.
 - API kapalıysa mevcut çıktıyı kullanan, ilk çalıştırmada yalnızca API projesini
   derleyip otomatik başlatan istemci yazıldı.
-- Metin analizi için web ile aynı endpoint ve güvenlik kuralları kullanıldı.
-- `modeller`, `durum`, `yardım` ve `çıkış` komutları eklendi.
+- Varsayılan terminal davranışı sade yerel sohbet olacak şekilde değiştirildi.
+- Duygu analizi açık `analiz <metin>` komutuna taşındı.
+- `modeller`, `durum`, `şartlar`, `yardım` ve `çıkış` komutları eklendi.
 - Tek seferlik kullanım için `-Once` seçeneği eklendi.
 - CMD istemcisinin yalnızca kendi başlattığı API sürecini kapatması sağlandı.
 

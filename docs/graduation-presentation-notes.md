@@ -24,7 +24,7 @@ aşamasında test ve hata analizi yapmayı zorlaştırır.
 - Model kullanılamazsa açıklanabilir kural tabanlı fallback çalışır.
 - Sonuçta analiz yöntemi, model ve iki ayrı skor kaynağı gösterilir.
 - Riskli metin normal motivasyon akışından ayrılır.
-- Sonuçlar Türkçe web demo veya sade CMD istemcisinde gösterilir; API ayrıca
+- Sonuçlar Türkçe web demo veya sade CMD sohbet istemcisinde gösterilir; API ayrıca
   testler ve Swagger UI ile doğrulanır.
 
 ## Dürüst Teknik Konumlandırma
@@ -49,7 +49,7 @@ eder.
 
 1. Problemi ve gizlilik gerekçesini anlat.
 2. Mimari diyagramı göster.
-3. `darklove.cmd` ile kurulum gerektirmeyen terminal akışını göster.
+3. `darklove.cmd` ile kurulum gerektirmeyen terminal sohbet akışını göster.
 4. `modeller` komutuyla bilgisayardaki yerel modeli göster.
 5. Kök adresteki Türkçe web demo ekranını aç.
 6. Modeli yükleyip aktif hale getir.

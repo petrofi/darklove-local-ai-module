@@ -207,14 +207,20 @@ deponun köküne taşır, UTF-8 kod sayfasını etkinleştirir ve aldığı seç
 CMD deneyiminin asıl mantığını içerir. API zaten açıksa doğrudan onu kullanır.
 API kapalıysa mevcut Release çıktısını açar; henüz çıktı yoksa yalnızca API
 projesini derler. Uygulamayı gizli bir alt süreç olarak `http://localhost:5019`
-adresinde başlatır ve health endpointi hazır olana kadar bekler. Kullanıcı
-metnini JSON olarak UTF-8 kodlayıp mevcut analiz endpointine gönderir; böylece
-web ve CMD sürümleri aynı güvenlik, model ve fallback kurallarını kullanır.
+adresinde başlatır ve health endpointi hazır olana kadar bekler.
 
-İstemci `modeller`, `durum`, `yardım` ve `çıkış` komutlarını destekler.
-`-Once` seçeneği tek bir metni analiz edip kapanan sunum/otomasyon kullanımını,
-`-NoStart` seçeneği ise yalnızca önceden çalışan API'ye bağlanmayı sağlar.
-İstemci API'yi kendisi başlattıysa çıkışta yalnızca o süreci kapatır.
+Varsayılan terminal davranışı sohbet modudur. Kullanıcı mesajı `/api/chat`
+endpointine gönderilir ve model adı, analiz yöntemi veya güven yüzdesi gibi
+teknik alanlar terminalde gösterilmez. Duygu analizi istenirse kullanıcı
+`analiz <metin>` komutunu açıkça yazar; bu durumda mevcut
+`/api/emotion/analyze` endpointi kullanılır.
+
+İstemci `analiz`, `modeller`, `durum`, `şartlar`, `yardım` ve `çıkış`
+komutlarını destekler. `şartlar`, tıbbi teşhis olmadığı ve model güven
+değerlerinin klinik olasılık olmadığı uyarılarını gösterir. `-Once` seçeneği
+tek bir sohbet mesajı gönderip kapanan sunum/otomasyon kullanımını, `-NoStart`
+seçeneği ise yalnızca önceden çalışan API'ye bağlanmayı sağlar. İstemci API'yi
+kendisi başlattıysa çıkışta yalnızca o süreci kapatır.
 
 ### `backend/Darklove.LocalAI.Api/Program.cs`
 
@@ -793,25 +799,27 @@ darklove.cmd
 ```
 
 API'nin ayrıca başlatılması gerekmez. Derlenmiş çıktı yoksa ilk çalıştırmada API
-projesi otomatik derlenir. Terminal açıldıktan sonra doğrudan metin yazılır.
+projesi otomatik derlenir. Terminal açıldıktan sonra doğrudan mesaj yazılır.
 Yardımcı komutlar:
 
 ```text
+analiz <metin>  Metni duygu açısından analiz eder.
 modeller  Bilgisayardaki yerel modelleri listeler.
 durum     Yerel model sağlayıcısının durumunu gösterir.
+şartlar   Kullanım şartlarını ve güvenlik notlarını gösterir.
 yardım    Komut listesini gösterir.
 çıkış     İstemciyi ve istemcinin başlattığı API'yi kapatır.
 ```
 
-Tek seferlik örnek:
+Tek seferlik sohbet örneği:
 
 ```cmd
-darklove.cmd -Once "Bugün kendimi yalnız ve yorgun hissediyorum."
+darklove.cmd -Once "Naber, nasıl gidiyor?"
 ```
 
 ## 16. Jüri Demo Akışı
 
-1. CMD içinde `darklove.cmd` çalıştırıp en sade kullanıcı akışını göster.
+1. CMD içinde `darklove.cmd` çalıştırıp sade sohbet akışını göster.
 2. `modeller` komutuyla bilgisayardaki yerel LLM'leri göster.
 3. Kök adresteki Türkçe web demo ekranını aç.
 4. Model yöneticisinde model boyutunu ve quantization bilgisini göster.

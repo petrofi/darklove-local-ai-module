@@ -14,6 +14,7 @@ $apiBaseUrl = "http://localhost:5019"
 $script:apiProcess = $null
 $script:apiOutputTask = $null
 $script:apiErrorTask = $null
+$script:chatHistory = New-Object 'System.Collections.Generic.List[object]'
 
 function Test-DarkloveApi {
     try {
@@ -162,22 +163,7 @@ function Show-Analysis {
 
         Write-Host ""
         Write-Host "Duygu : $emotion" -ForegroundColor Cyan
-        if ($result.analysisMethod -eq "open-source-model") {
-            Write-Host "Güven : %$confidence (model çıktısı; klinik olasılık değildir)"
-        }
-        else {
-            Write-Host "Güven : %$confidence (sezgisel değer)"
-        }
-        Write-Host "Yöntem: $method"
-
-        if (-not [string]::IsNullOrWhiteSpace($result.model)) {
-            Write-Host "Model : $($result.model)"
-        }
-
-        if ($result.analysisMethod -eq "rule-based-fallback") {
-            Write-Host "Not   : Yerel model yanıt vermedi; güvenli yedek analiz kullanıldı." `
-                -ForegroundColor Yellow
-        }
+        Write-Host "Güven : %$confidence"
 
         if ($result.riskLevel -eq "high") {
             Write-Host "Risk  : Yüksek" -ForegroundColor Red
@@ -189,6 +175,54 @@ function Show-Analysis {
     catch {
         Write-Host ""
         Write-Host "Analiz yapılamadı: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ""
+    }
+}
+
+function Show-Chat {
+    param([Parameter(Mandatory)][string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return
+    }
+
+    try {
+        $result = Invoke-DarkloveRequest `
+            -Path "/api/chat" `
+            -Method POST `
+            -Body @{
+                userText = $Text
+                history = @($script:chatHistory.ToArray())
+            }
+
+        $message = [string]$result.assistantMessage
+
+        Write-Host ""
+        Write-Host "Darklove: " -NoNewline -ForegroundColor Magenta
+        if ($result.needsSupportWarning) {
+            Write-Host $message -ForegroundColor Yellow
+        }
+        else {
+            Write-Host $message
+        }
+        Write-Host ""
+
+        $script:chatHistory.Add([pscustomobject]@{
+            role = "user"
+            content = $Text
+        })
+        $script:chatHistory.Add([pscustomobject]@{
+            role = "assistant"
+            content = $message
+        })
+
+        while ($script:chatHistory.Count -gt 12) {
+            $script:chatHistory.RemoveAt(0)
+        }
+    }
+    catch {
+        Write-Host ""
+        Write-Host "Sohbet yanıtı alınamadı: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
     }
 }
@@ -237,10 +271,26 @@ function Show-Status {
 function Show-Help {
     Write-Host ""
     Write-Host "Komutlar" -ForegroundColor Cyan
+    Write-Host "  analiz <metin>  İstersen metni duygu açısından analiz eder."
     Write-Host "  modeller  Bilgisayardaki yerel modelleri gösterir."
     Write-Host "  durum     Model sağlayıcısının durumunu gösterir."
+    Write-Host "  şartlar   Kullanım şartları ve güvenlik notlarını gösterir."
     Write-Host "  yardım    Bu listeyi gösterir."
     Write-Host "  çıkış     Programı kapatır."
+    Write-Host ""
+    Write-Host "Normal kullanımda sadece mesajını yazman yeterli; Darklove sohbet eder." `
+        -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+function Show-Terms {
+    Write-Host ""
+    Write-Host "Kullanım şartları" -ForegroundColor Cyan
+    Write-Host "- Bu uygulama tıbbi teşhis veya profesyonel psikolojik destek yerine geçmez."
+    Write-Host "- Model güven değerleri klinik olasılık değildir."
+    Write-Host "- Kriz veya kendine zarar verme riski varsa güvendiğin birine ulaş ve acil durumda 112'yi ara."
+    Write-Host "- Sohbet yerel API ve yerel model üzerinden çalışır; bu MVP kullanıcı metnini veritabanına kaydetmez."
+    Write-Host "- Duygu analizi istiyorsan açıkça 'analiz <metin>' komutunu kullan."
     Write-Host ""
 }
 
@@ -285,21 +335,36 @@ try {
     Start-DarkloveApi
 
     if (-not [string]::IsNullOrWhiteSpace($Once)) {
-        Show-Analysis $Once
+        Show-Chat $Once
         exit 0
     }
 
-    Write-Host "Metninizi yazın. Komutlar için 'yardım', çıkmak için 'çıkış' yazın."
+    Write-Host "Mesajınızı yazın. Duygu analizi için 'analiz <metin>', komutlar için 'yardım' yazın."
     Write-Host ""
 
     while ($true) {
         $inputText = Read-Host "Siz"
-        switch ($inputText.Trim().ToLowerInvariant()) {
+        $trimmedInput = $inputText.Trim()
+        $normalizedCommand = $trimmedInput.ToLowerInvariant()
+
+        switch ($normalizedCommand) {
             { $_ -in @("çıkış", "cikis", "exit", "q") } { return }
             { $_ -in @("yardım", "yardim", "help") } { Show-Help; continue }
+            { $_ -in @("şartlar", "sartlar", "terms", "kullanım şartları", "kullanim sartlari") } {
+                Show-Terms
+                continue
+            }
             "modeller" { Show-Models; continue }
             "durum" { Show-Status; continue }
-            default { Show-Analysis $inputText }
+            { $_.StartsWith("analiz ") } {
+                Show-Analysis $trimmedInput.Substring(7)
+                continue
+            }
+            { $_.StartsWith("duygu ") } {
+                Show-Analysis $trimmedInput.Substring(6)
+                continue
+            }
+            default { Show-Chat $inputText }
         }
     }
 }

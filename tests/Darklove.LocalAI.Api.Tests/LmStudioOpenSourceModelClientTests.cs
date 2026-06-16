@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Darklove.LocalAI.Api.Features.EmotionAnalysis.Contracts;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Models;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
 using Microsoft.Extensions.Options;
@@ -86,6 +87,49 @@ public sealed class LmStudioOpenSourceModelClientTests
             "qwen/qwen3-vl-30b",
             document.RootElement.GetProperty("model").GetString());
         Assert.True(document.RootElement.TryGetProperty("response_format", out _));
+    }
+
+    [Fact]
+    public async Task ChatAsync_UsesPlainLocalConversation()
+    {
+        string? requestBody = null;
+        var client = CreateClient(async request =>
+        {
+            if (request.Method == HttpMethod.Get)
+            {
+                return CatalogResponse();
+            }
+
+            requestBody = await request.Content!.ReadAsStringAsync();
+
+            return JsonResponse(
+                """
+                {
+                  "choices": [
+                    {
+                      "message": {
+                        "content": "İyiyim, teşekkür ederim. Sen nasılsın?"
+                      }
+                    }
+                  ]
+                }
+                """);
+        });
+
+        var result = await client.ChatAsync(
+            "naber nasıl gidiyor",
+            [new ChatMessage("user", "Merhaba")]);
+
+        Assert.Equal("İyiyim, teşekkür ederim. Sen nasılsın?", result);
+
+        using var document = JsonDocument.Parse(requestBody!);
+        Assert.Equal(
+            "qwen/qwen3-vl-30b",
+            document.RootElement.GetProperty("model").GetString());
+        Assert.False(document.RootElement.TryGetProperty("response_format", out _));
+        Assert.Contains(
+            document.RootElement.GetProperty("messages").EnumerateArray(),
+            message => message.GetProperty("content").GetString() == "naber nasıl gidiyor");
     }
 
     [Fact]

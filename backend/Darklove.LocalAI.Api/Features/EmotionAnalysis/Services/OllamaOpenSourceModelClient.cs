@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Darklove.LocalAI.Api.Features.EmotionAnalysis.Contracts;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Models;
 
 namespace Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
@@ -73,6 +74,92 @@ public sealed class OllamaOpenSourceModelClient(
         Kullanıcıya tavsiye verme, metni tekrar etme ve açıklama ekleme.
         Yalnızca verilen JSON şemasına uyan JSON üret.
         """;
+
+    private const string ChatSystemPrompt =
+        """
+        Sen Darklove Local AI içinde çalışan yerel Türkçe sohbet asistanısın.
+        Kullanıcıyla doğal, kısa ve anlaşılır biçimde konuş.
+        Her mesajı duygu analizi raporuna çevirmeye çalışma.
+        Araştırma, yazılım, okul projesi ve genel bilgi sorularını doğrudan yanıtla.
+        Tıbbi veya psikolojik teşhis koyma; acil risk durumunda profesyonel destek öner.
+        Teknik etiket, model adı, confidence veya analiz yöntemi yazma.
+        Emoji kullanma.
+        """;
+
+    public async Task<string> ChatAsync(
+        string userText,
+        IReadOnlyList<ChatMessage> history,
+        CancellationToken cancellationToken = default)
+    {
+        var messages = new List<OllamaMessage>
+        {
+            new("system", ChatSystemPrompt)
+        };
+
+        messages.AddRange(history.Select(message =>
+            new OllamaMessage(message.Role, message.Content)));
+        messages.Add(new OllamaMessage("user", userText));
+
+        var request = new OllamaPlainChatRequest(
+            selection.Model,
+            messages,
+            Stream: false,
+            Think: false,
+            Options: new OllamaRuntimeOptions(Temperature: 0.4, NumPredict: 700));
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await httpClient.PostAsJsonAsync(
+                "/api/chat",
+                request,
+                JsonOptions,
+                cancellationToken);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new LocalModelException(
+                "model-timeout",
+                "Yerel sohbet isteği zaman aşımına uğradı.",
+                exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new LocalModelException(
+                "model-unavailable",
+                "Ollama çalışma zamanına ulaşılamadı.",
+                exception);
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new LocalModelException(
+                "model-not-found",
+                $"'{selection.Model}' modeli Ollama içinde bulunamadı.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new LocalModelException(
+                "model-http-error",
+                $"Ollama HTTP {(int)response.StatusCode} yanıtı döndürdü.");
+        }
+
+        var ollamaResponse = await response.Content.ReadFromJsonAsync<OllamaChatResponse>(
+            JsonOptions,
+            cancellationToken);
+        var content = ollamaResponse?.Message?.Content;
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new LocalModelException(
+                "invalid-model-response",
+                "Yerel sohbet modeli boş yanıt döndürdü.");
+        }
+
+        return content.Trim();
+    }
 
     public async Task<OpenSourceModelClassification> ClassifyAsync(
         string userText,
@@ -251,6 +338,13 @@ public sealed class OllamaOpenSourceModelClient(
         bool Stream,
         bool Think,
         JsonElement Format,
+        OllamaRuntimeOptions Options);
+
+    private sealed record OllamaPlainChatRequest(
+        string Model,
+        IReadOnlyList<OllamaMessage> Messages,
+        bool Stream,
+        bool Think,
         OllamaRuntimeOptions Options);
 
     private sealed record OllamaMessage(string Role, string Content);

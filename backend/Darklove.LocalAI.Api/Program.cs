@@ -87,6 +87,7 @@ else
 }
 
 builder.Services.AddScoped<IEmotionAnalysisService, HybridEmotionAnalysisService>();
+builder.Services.AddScoped<IChatService, LocalChatService>();
 
 var app = builder.Build();
 
@@ -124,6 +125,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.MapHealthEndpoint();
+app.MapChatEndpoints();
 app.MapOpenSourceModelEndpoints();
 app.MapEmotionAnalysisEndpoints();
 

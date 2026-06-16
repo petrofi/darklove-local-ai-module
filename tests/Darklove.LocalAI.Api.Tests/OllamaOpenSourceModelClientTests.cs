@@ -10,6 +10,38 @@ namespace Darklove.LocalAI.Api.Tests;
 public sealed class OllamaOpenSourceModelClientTests
 {
     [Fact]
+    public async Task ChatAsync_ParsesPlainOllamaResponse()
+    {
+        string? capturedRequest = null;
+        var handler = new StubHttpMessageHandler(async request =>
+        {
+            capturedRequest = await request.Content!.ReadAsStringAsync();
+
+            return JsonResponse(
+                """
+                {
+                  "message": {
+                    "role": "assistant",
+                    "content": "Merhaba, iyiyim. Senin taraf nasıl?"
+                  }
+                }
+                """);
+        });
+        var client = CreateClient(handler);
+
+        var result = await client.ChatAsync("naber", []);
+
+        Assert.Equal("Merhaba, iyiyim. Senin taraf nasıl?", result);
+        Assert.NotNull(capturedRequest);
+
+        using var requestDocument = JsonDocument.Parse(capturedRequest);
+        Assert.Equal(
+            "qwen3:4b",
+            requestDocument.RootElement.GetProperty("model").GetString());
+        Assert.False(requestDocument.RootElement.TryGetProperty("format", out _));
+    }
+
+    [Fact]
     public async Task ClassifyAsync_ParsesStructuredOllamaResponse()
     {
         string? capturedRequest = null;

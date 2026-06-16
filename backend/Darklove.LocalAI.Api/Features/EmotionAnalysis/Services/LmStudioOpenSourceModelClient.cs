@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Darklove.LocalAI.Api.Features.EmotionAnalysis.Contracts;
 using Darklove.LocalAI.Api.Features.EmotionAnalysis.Models;
 
 namespace Darklove.LocalAI.Api.Features.EmotionAnalysis.Services;
@@ -77,6 +78,97 @@ public sealed partial class LmStudioOpenSourceModelClient(
         Kullanıcıya tavsiye verme, metni tekrar etme ve açıklama ekleme.
         Yalnızca verilen JSON şemasına uyan JSON üret.
         """;
+
+    private const string ChatSystemPrompt =
+        """
+        Sen Darklove Local AI içinde çalışan yerel Türkçe sohbet asistanısın.
+        Kullanıcıyla doğal, kısa ve anlaşılır biçimde konuş.
+        Her mesajı duygu analizi raporuna çevirmeye çalışma.
+        Araştırma, yazılım, okul projesi ve genel bilgi sorularını doğrudan yanıtla.
+        Tıbbi veya psikolojik teşhis koyma; acil risk durumunda profesyonel destek öner.
+        Teknik etiket, model adı, confidence veya analiz yöntemi yazma.
+        Emoji kullanma.
+        """;
+
+    public async Task<string> ChatAsync(
+        string userText,
+        IReadOnlyList<ChatMessage> history,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureRuntimeAvailableAsync(cancellationToken);
+
+        var messages = new List<object>
+        {
+            new { role = "system", content = ChatSystemPrompt }
+        };
+
+        foreach (var message in history)
+        {
+            messages.Add(new { role = message.Role, content = message.Content });
+        }
+
+        messages.Add(new { role = "user", content = userText });
+
+        var request = new
+        {
+            model = selection.Model,
+            messages,
+            temperature = 0.4,
+            max_tokens = 700,
+            stream = false
+        };
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await httpClient.PostAsJsonAsync(
+                "/v1/chat/completions",
+                request,
+                JsonOptions,
+                cancellationToken);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new LocalModelException(
+                "model-timeout",
+                "LM Studio sohbet isteği zaman aşımına uğradı.",
+                exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new LocalModelException(
+                "model-unavailable",
+                "LM Studio çalışma zamanına ulaşılamadı.",
+                exception);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var reason = response.StatusCode == HttpStatusCode.NotFound
+                ? "model-not-found"
+                : "model-http-error";
+
+            throw new LocalModelException(
+                reason,
+                $"LM Studio HTTP {(int)response.StatusCode} yanıtı döndürdü.");
+        }
+
+        var lmStudioResponse =
+            await response.Content.ReadFromJsonAsync<LmStudioChatResponse>(
+                JsonOptions,
+                cancellationToken);
+        var content = lmStudioResponse?.Choices?.FirstOrDefault()?.Message?.Content;
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new LocalModelException(
+                "invalid-model-response",
+                "LM Studio sohbet modeli boş yanıt döndürdü.");
+        }
+
+        return content.Trim();
+    }
 
     public async Task<OpenSourceModelClassification> ClassifyAsync(
         string userText,
