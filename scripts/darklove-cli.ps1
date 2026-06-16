@@ -345,10 +345,23 @@ function Show-DarkloveBanner {
     $leftRule = "═" * [Math]::Floor(($width - $tag.Length) / 2)
     $rightRule = "═" * ($width - $tag.Length - $leftRule.Length)
 
+    function Format-BannerLine {
+        param([string]$Text)
+
+        if ($Text.Length -ge $width) {
+            return $Text.Substring(0, $width)
+        }
+
+        $leftPadding = [Math]::Floor(($width - $Text.Length) / 2)
+        $rightPadding = $width - $Text.Length - $leftPadding
+
+        return "$(" " * $leftPadding)$Text$(" " * $rightPadding)"
+    }
+
     Write-Host "╔$border╗" -ForegroundColor DarkMagenta
     Write-Host "║$(" " * $width)║" -ForegroundColor DarkMagenta
     foreach ($line in $logo) {
-        Write-Host "║$($line.PadRight($width))║" -ForegroundColor Magenta
+        Write-Host "║$(Format-BannerLine $line)║" -ForegroundColor Magenta
     }
     Write-Host "║$(" " * $width)║" -ForegroundColor DarkMagenta
     Write-Host "╠$leftRule$tag$rightRule╣" -ForegroundColor DarkMagenta
