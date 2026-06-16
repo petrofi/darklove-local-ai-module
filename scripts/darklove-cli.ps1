@@ -245,16 +245,28 @@ function Show-Help {
 }
 
 function Show-DarkloveBanner {
-    Write-Host "+--------------------------------------------------------------------+" -ForegroundColor Magenta
-    Write-Host "|                                                                    |" -ForegroundColor Magenta
-    Write-Host "|  DDDD    A   RRRR  K  K  L      OOO  V   V  EEEEE                  |" -ForegroundColor Magenta
-    Write-Host "|  D   D  A A  R   R K K   L     O   O V   V  E                      |" -ForegroundColor Magenta
-    Write-Host "|  D   D AAAAA RRRR  KK    L     O   O V   V  EEEE                   |" -ForegroundColor Magenta
-    Write-Host "|  D   D A   A R R   K K   L     O   O  V V   E                      |" -ForegroundColor Magenta
-    Write-Host "|  DDDD  A   A R  RR K  K  LLLLL  OOO    V    EEEEE                  |" -ForegroundColor Magenta
-    Write-Host "|                                                                    |" -ForegroundColor Magenta
-    Write-Host "+--------------------------------------------------------------------+" -ForegroundColor Magenta
-    Write-Host "                 Yerel ve guvenli yapay zeka" -ForegroundColor DarkCyan
+    $width = 76
+    $border = "═" * $width
+    $logo = @(
+        "   ____  ___    ____  __ __ __    ____ _    ________",
+        "  / __ \/   |  / __ \/ //_// /   / __ \ |  / / ____/",
+        " / / / / /| | / /_/ / ,<  / /   / / / / | / / __/",
+        "/ /_/ / ___ |/ _, _/ /| |/ /___/ /_/ /| |/ / /___",
+        "\_____/_/  |_/_/ |_/_/ |_/_____/\____/ |___/_____/"
+    )
+    $tag = " LOCAL AI | PRIVATE | SAFE "
+    $leftRule = "═" * [Math]::Floor(($width - $tag.Length) / 2)
+    $rightRule = "═" * ($width - $tag.Length - $leftRule.Length)
+
+    Write-Host "╔$border╗" -ForegroundColor DarkMagenta
+    Write-Host "║$(" " * $width)║" -ForegroundColor DarkMagenta
+    foreach ($line in $logo) {
+        Write-Host "║$($line.PadRight($width))║" -ForegroundColor Magenta
+    }
+    Write-Host "║$(" " * $width)║" -ForegroundColor DarkMagenta
+    Write-Host "╠$leftRule$tag$rightRule╣" -ForegroundColor DarkMagenta
+    Write-Host "║$("Yerel ve güvenli yapay zekâ".PadLeft(51).PadRight($width))║" -ForegroundColor DarkCyan
+    Write-Host "╚$border╝" -ForegroundColor DarkMagenta
     Write-Host ""
 }
 
