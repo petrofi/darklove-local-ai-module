@@ -247,33 +247,25 @@ function Show-Help {
 function Show-DarkloveBanner {
     $width = 76
     $border = "═" * $width
+    $logo = @(
+        "   ____  ___    ____  __ __ __    ____ _    ________",
+        "  / __ \/   |  / __ \/ //_// /   / __ \ |  / / ____/",
+        " / / / / /| | / /_/ / ,<  / /   / / / / | / / __/",
+        "/ /_/ / ___ |/ _, _/ /| |/ /___/ /_/ /| |/ / /___",
+        "\_____/_/  |_/_/ |_/_/ |_/_____/\____/ |___/_____/"
+    )
     $tag = " LOCAL AI | PRIVATE | SAFE "
     $leftRule = "═" * [Math]::Floor(($width - $tag.Length) / 2)
     $rightRule = "═" * ($width - $tag.Length - $leftRule.Length)
 
-    function Write-BannerLine {
-        param(
-            [string]$Text = "",
-            [ConsoleColor]$Color = [ConsoleColor]::DarkMagenta
-        )
-
-        if ($Text.Length -gt $width) {
-            $Text = $Text.Substring(0, $width)
-        }
-
-        $leftPadding = [Math]::Floor(($width - $Text.Length) / 2)
-        $rightPadding = $width - $Text.Length - $leftPadding
-
-        Write-Host "║$(" " * $leftPadding)$Text$(" " * $rightPadding)║" -ForegroundColor $Color
-    }
-
     Write-Host "╔$border╗" -ForegroundColor DarkMagenta
-    Write-BannerLine
-    Write-BannerLine "D A R K L O V E" Magenta
-    Write-BannerLine "LOCAL AI MODULE" DarkCyan
-    Write-BannerLine
+    Write-Host "║$(" " * $width)║" -ForegroundColor DarkMagenta
+    foreach ($line in $logo) {
+        Write-Host "║$($line.PadRight($width))║" -ForegroundColor Magenta
+    }
+    Write-Host "║$(" " * $width)║" -ForegroundColor DarkMagenta
     Write-Host "╠$leftRule$tag$rightRule╣" -ForegroundColor DarkMagenta
-    Write-BannerLine "Yerel ve güvenli yapay zekâ" DarkCyan
+    Write-Host "║$("Yerel ve güvenli yapay zekâ".PadLeft(51).PadRight($width))║" -ForegroundColor DarkCyan
     Write-Host "╚$border╝" -ForegroundColor DarkMagenta
     Write-Host ""
 }
