@@ -86,25 +86,94 @@ $env:LocalModel__Model = "qwen3:4b"
 
 Kullanılacak modelin lisansını proje gereksinimlerine göre ayrıca kontrol et.
 
-## AD8232 / Arduino ile EKG Destekli Sohbet
+## AD8232 / Arduino Kurulum Rehberi
 
 Web arayüzünde **Kalp ritmine duyarlı yerel sohbet** bölümü vardır. Bu bölüm,
 ek sunucu paketi kurmadan tarayıcının Web Serial API özelliğiyle Arduino seri
-portuna bağlanır.
+portuna bağlanır. Arduino, AD8232 sensöründen gelen ham analog değeri `9600`
+baud üzerinden gönderir; Darklove bu veriden yaklaşık BPM, ritim etiketi ve
+sinyal kalitesi çıkarıp yerel sohbet modeline yalnızca bağlam olarak ekler.
 
-Kullanım akışı:
+> Bu özellik tıbbi teşhis üretmez. AD8232 hobi/prototip modülüdür; ölçüm kalitesi
+> elektrot temasına, kablolamaya ve örnekleme koduna bağlıdır. Göğüs ağrısı,
+> bayılma, nefes darlığı veya hayati risk gibi durumlarda uygulama yerine 112
+> ve profesyonel sağlık desteği kullanılmalıdır.
 
-1. Arduino Uno ve AD8232 modülünü bilgisayara bağla.
-2. AD8232 elektrotları insana bağlı değilse `!` çıktısı veya temas uyarısı normaldir.
-3. `http://localhost:5019` adresinde **Arduino'ya bağlan** düğmesine bas.
-4. Açılan tarayıcı penceresinde Arduino portunu seç. Bu bilgisayarda port `COM3` olarak görülmüştü.
-5. Sayfa canlı sinyali, yaklaşık BPM değerini, ritim durumunu ve sinyal kalitesini gösterir.
-6. **Sohbet cevaplarında kalp ritmi bağlamını kullan** açıkken yerel model, bu ölçümü sohbet bağlamı olarak dikkate alır.
+### Gerekli Parçalar
 
-Bu özellik tıbbi teşhis üretmez. AD8232 hobi/prototip modülüdür; ölçüm kalitesi
-elektrot temasına, kablolamaya ve örnekleme koduna bağlıdır. Göğüs ağrısı,
-bayılma, nefes darlığı veya hayati risk gibi durumlarda uygulama yerine 112
-ve profesyonel sağlık desteği kullanılmalıdır.
+- Arduino Uno veya uyumlu kart
+- AD8232 kalp atış hızı sensörü
+- 3 elektrot pedi ve AD8232 elektrot kablosu
+- Jumper kablolar
+- USB kablosu
+- Chrome veya Edge gibi Web Serial destekleyen tarayıcı
+
+### Devre Bağlantısı
+
+![AD8232 Arduino Uno bağlantı şeması](docs/images/ad8232-arduino-uno-wiring.png)
+
+| AD8232 pini | Arduino Uno pini | Görev |
+| --- | --- | --- |
+| `GND` | `GND` | Ortak toprak |
+| `3.3V` | `3.3V` | Sensör beslemesi |
+| `OUTPUT` | `A0` | Ham analog EKG sinyali |
+| `LO-` | `D11` | Elektrot kopukluk kontrolü |
+| `LO+` | `D10` | Elektrot kopukluk kontrolü |
+
+`SDN` pini bu örnekte kullanılmaz. Sensörü 3.3V ile beslemek önerilir.
+
+### Elektrot Yerleşimi
+
+![AD8232 elektrot yerleşimi](docs/images/ad8232-electrode-placement.png)
+
+AD8232 üzerinde yazan elektrot isimlerini takip et:
+
+- `RA`: sağ kol / sağ göğüs tarafı
+- `LA`: sol kol / sol göğüs tarafı
+- `RL`: sağ bacak, karın veya alt gövde referans noktası
+
+Elektrotlar insana bağlı değilse Arduino seri çıktısında `!` görünmesi normaldir.
+Darklove web ekranı bunu “elektrot teması yok” olarak gösterir.
+
+### Arduino Kodu
+
+Kod Arduino IDE’ye yüklenir. Yükledikten sonra Arduino IDE içinde
+**Araçlar > Seri Çizici** ekranından grafiği görebilirsin.
+
+```ino
+void setup() {
+  Serial.begin(9600);
+  pinMode(10, INPUT); // LO+
+  pinMode(11, INPUT); // LO-
+}
+
+void loop() {
+  if ((digitalRead(10) == 1) || (digitalRead(11) == 1)) {
+    Serial.println('!');
+  } else {
+    Serial.println(analogRead(A0));
+  }
+
+  delay(1);
+}
+```
+
+Seri Çizici üzerinde beklenen sinyal örneği:
+
+![Arduino Seri Çizici EKG grafiği](docs/images/ad8232-serial-plotter.png)
+
+### Darklove Web Arayüzünde Kullanım
+
+1. Arduino kodunu karta yükle.
+2. Arduino Uno ve AD8232 modülünü bilgisayara bağla.
+3. `dotnet run --project backend/Darklove.LocalAI.Api --launch-profile http` ile uygulamayı çalıştır.
+4. `http://localhost:5019` adresini Chrome veya Edge ile aç.
+5. **Kalp ritmine duyarlı yerel sohbet** bölümünde baud değerini `9600` bırak.
+6. **Arduino'ya bağlan** düğmesine bas ve tarayıcı izin penceresinde Arduino portunu seç. Bu bilgisayarda port `COM3` olarak görülmüştü.
+7. Elektrotlar bağlıysa canlı sinyal, yaklaşık BPM, ritim durumu ve sinyal kalitesi görünür.
+8. **Sohbet cevaplarında kalp ritmi bağlamını kullan** açıkken yerel model normal sohbet ederken ritim özetini dikkate alır.
+
+Kaynak: [Robolink Akademi - AD8232 Kalp Atış Hızı Sensörü Kullanımı](https://akademi.robolinkmarket.com/ad8232-kalp-atis-hizi-sensoru-kullanimi-arduino/)
 
 ## API'yi Çalıştırma
 
