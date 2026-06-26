@@ -21,6 +21,8 @@ aşamasında test ve hata analizi yapmayı zorlaştırır.
 - Metin yerel API içinde işlenir.
 - LM Studio veya Ollama üzerinde çalışan açık model kullanılır.
 - Modeller web ekranından listelenebilir, seçilebilir ve indirilebilir.
+- Arduino Uno + AD8232 bağlıysa web ekranı canlı EKG verisini okuyup sohbet
+  bağlamı olarak kullanabilir.
 - Model kullanılamazsa açıklanabilir kural tabanlı fallback çalışır.
 - Sonuçta analiz yöntemi, model ve iki ayrı skor kaynağı gösterilir.
 - Riskli metin normal motivasyon akışından ayrılır.
@@ -41,6 +43,7 @@ eder.
 - LM Studio, Ollama ve Qwen3
 - JSON Schema structured output
 - Türkçe web demo ekranı
+- Web Serial API ile Arduino/AD8232 bağlantısı
 - OpenAPI ve Swagger UI
 - xUnit ve WebApplicationFactory
 - GitHub Actions
@@ -53,10 +56,12 @@ eder.
 4. `modeller` komutuyla bilgisayardaki yerel modeli göster.
 5. Kök adresteki Türkçe web demo ekranını aç.
 6. Modeli yükleyip aktif hale getir.
-7. Modelin kural listesinde olmayan bir metni sınıflandırmasını göster.
-8. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
-9. Swagger UI ve 38 başarılı testi göster.
-10. Foundry Local adaptörünü sonraki adım olarak anlat.
+7. Arduino/AD8232 bölümünde port seçimini ve EKG sinyal alanını göster.
+8. Yerel AI sohbetinde ritim bağlamı açıkken sade konuşma akışını göster.
+9. Modelin kural listesinde olmayan bir metni sınıflandırmasını göster.
+10. Kriz örneğinde modele gidilmeden güvenli mesaj üretildiğini göster.
+11. Swagger UI ve 46 başarılı testi göster.
+12. Foundry Local adaptörünü sonraki adım olarak anlat.
 
 ## Önerilen Demo Metinleri
 
@@ -104,8 +109,8 @@ kullanıldığı `analysisMethod` alanından anlaşılır.
 
 ### Proje tıbbi tavsiye veriyor mu?
 
-Hayır. Teşhis koymaz ve profesyonel desteğin yerine geçmez. Riskli ifadelerde
-yalnızca güvenli yardım yönlendirmesi yapar.
+Hayır. Teşhis koymaz ve profesyonel desteğin yerine geçmez. AD8232 verisi yalnızca
+yaklaşık sohbet bağlamıdır. Riskli ifadelerde yalnızca güvenli yardım yönlendirmesi yapar.
 
 ### Veri nerede saklanıyor?
 

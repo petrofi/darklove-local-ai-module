@@ -27,6 +27,30 @@ public sealed class LocalChatServiceTests
     }
 
     [Fact]
+    public async Task ReplyAsync_AddsHeartContextToModelPrompt_WhenProvided()
+    {
+        var modelClient = new FakeModelClient("Ritmin biraz yuksek gorunuyor; sakin kalip dinlenebilirsin.");
+        var service = CreateService(modelClient);
+
+        var result = await service.ReplyAsync(new ChatRequest(
+            "Sohbet ederken ritmime gore daha sakin konus.",
+            HeartContext: new HeartContext(
+                Bpm: 112,
+                Rhythm: "yuksek ritim",
+                SignalQuality: "iyi",
+                LeadOff: false,
+                SampleCount: 240,
+                AverageValue: 516.4,
+                MeasuredAt: DateTimeOffset.UtcNow)));
+
+        Assert.Equal("open-source-model", result.AnalysisMethod);
+        Assert.Contains("AD8232/Arduino", modelClient.LastUserText);
+        Assert.Contains("tıbbi teşhis değildir", modelClient.LastUserText);
+        Assert.Contains("yaklaşık nabız 112 BPM", modelClient.LastUserText);
+        Assert.Contains("Kullanıcı mesajı", modelClient.LastUserText);
+    }
+
+    [Fact]
     public async Task ReplyAsync_DoesNotCallModel_ForCrisisText()
     {
         var modelClient = new FakeModelClient("Bu cevap kullanılmamalı.");
@@ -93,12 +117,15 @@ public sealed class LocalChatServiceTests
 
         public int ClassifyCallCount { get; private set; }
 
+        public string LastUserText { get; private set; } = string.Empty;
+
         public Task<string> ChatAsync(
             string userText,
             IReadOnlyList<ChatMessage> history,
             CancellationToken cancellationToken = default)
         {
             ChatCallCount++;
+            LastUserText = userText;
 
             return _exception is not null
                 ? Task.FromException<string>(_exception)

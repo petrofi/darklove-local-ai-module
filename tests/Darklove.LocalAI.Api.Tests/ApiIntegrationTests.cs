@@ -40,7 +40,9 @@ public sealed class ApiIntegrationTests : IClassFixture<DarkloveApiFactory>
         Assert.Contains("Darklove Local AI", html);
         Assert.Contains("analysis-form", html);
         Assert.Contains("model-download-form", html);
-        Assert.Contains("/app.js?v=3", html);
+        Assert.Contains("connect-ecg-button", html);
+        Assert.Contains("chat-form", html);
+        Assert.Contains("/app.js?v=4", html);
     }
 
     [Theory]

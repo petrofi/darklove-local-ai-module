@@ -43,7 +43,7 @@ public sealed partial class LocalChatService(
         try
         {
             var answer = await modelClient.ChatAsync(
-                userText,
+                BuildModelPrompt(userText, request.HeartContext),
                 SanitizeHistory(request.History),
                 cancellationToken);
 
@@ -69,6 +69,83 @@ public sealed partial class LocalChatService(
                 Model: selection.Model,
                 FallbackReason: exception.ReasonCode);
         }
+    }
+
+    private static string BuildModelPrompt(string userText, HeartContext? heartContext)
+    {
+        var heartSummary = FormatHeartContext(heartContext);
+
+        if (string.IsNullOrEmpty(heartSummary))
+        {
+            return userText;
+        }
+
+        return
+            "Aşağıdaki kalp ritmi bilgisi, kullanıcının yerel AD8232/Arduino " +
+            "modülünden gelen yaklaşık sohbet bağlamıdır; tıbbi teşhis değildir. " +
+            "Kesin tanı koyma. Kullanıcı göğüs ağrısı, bayılma, nefes darlığı veya " +
+            "hayati risk anlatırsa profesyonel destek ve 112 yönlendirmesi yap.\n\n" +
+            $"Kalp ritmi özeti: {heartSummary}\n\n" +
+            $"Kullanıcı mesajı: {userText}";
+    }
+
+    private static string FormatHeartContext(HeartContext? heartContext)
+    {
+        if (heartContext is null)
+        {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+
+        if (heartContext.Bpm is >= 30 and <= 220)
+        {
+            parts.Add($"yaklaşık nabız {heartContext.Bpm} BPM");
+        }
+
+        var rhythm = NormalizeShortText(heartContext.Rhythm, 40);
+        if (!string.IsNullOrEmpty(rhythm))
+        {
+            parts.Add($"ritim durumu {rhythm}");
+        }
+
+        var signalQuality = NormalizeShortText(heartContext.SignalQuality, 40);
+        if (!string.IsNullOrEmpty(signalQuality))
+        {
+            parts.Add($"sinyal kalitesi {signalQuality}");
+        }
+
+        if (heartContext.LeadOff is true)
+        {
+            parts.Add("elektrot teması yok veya zayıf");
+        }
+
+        if (heartContext.SampleCount is > 0 and <= 20000)
+        {
+            parts.Add($"{heartContext.SampleCount} örnek okundu");
+        }
+
+        if (heartContext.AverageValue is >= 0 and <= 5000)
+        {
+            parts.Add($"ortalama ham değer {Math.Round(heartContext.AverageValue.Value, 1)}");
+        }
+
+        return string.Join("; ", parts);
+    }
+
+    private static string NormalizeShortText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var cleaned = RepeatedSpacesRegex()
+            .Replace(value.Trim(), " ");
+
+        return cleaned.Length <= maxLength
+            ? cleaned
+            : cleaned[..maxLength];
     }
 
     private static IReadOnlyList<ChatMessage> SanitizeHistory(

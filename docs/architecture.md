@@ -32,7 +32,12 @@ flowchart TD
 
 `wwwroot` içindeki Türkçe demo ekranı, model durumunu ve analiz sonuçlarını
 tarayıcıda gösterir. Ayrı bir frontend sunucusu veya derleme zinciri gerektirmez.
+Demo ekranı ayrıca Web Serial API ile Arduino Uno + AD8232 modülünden canlı EKG
+verisi okuyabilir. Bu okuma tarayıcı izniyle yapılır; backend seri port sürücüsü
+veya ek masaüstü kurulumu gerektirmez.
 `EmotionAnalysisEndpoints`, HTTP sözleşmesini ve doğrulamayı yönetir.
+`ChatEndpoints`, normal sohbet metnini ve isteğe bağlı kalp ritmi bağlamını
+yerel modele iletir. Bu endpoint duygu analizi raporu üretmez.
 `OpenSourceModelEndpoints`, çalışma zamanı durumunu, yerel model kataloğunu,
 aktif model seçimini ve indirme işlerini yönetir.
 
@@ -71,6 +76,10 @@ tanımlar. Uzak endpointler doğrulama aşamasında reddedilir.
 - Model yalnızca sınıflandırma yapar; kullanıcı mesajları deterministiktir.
 - Model hatası API'yi durdurmaz, `rule-based-fallback` sonucu üretir.
 - `scores` ve `modelScores` farklı anlamları korumak için ayrı alanlardır.
+- AD8232 verisi yalnızca yaklaşık sohbet bağlamıdır; tıbbi teşhis veya klinik
+  karar üretimi modele devredilmez.
+- Web Serial seçimi kullanıcı onayıyla tarayıcıda yapılır; seri port adı sunucu
+  tarafında kalıcı olarak saklanmaz.
 - Model endpointi yalnızca loopback olabilir.
 - Hassas kullanıcı metni saklanmaz ve loglanmaz.
 - Demo arayüzü aynı origin üzerinden API'ye gider; ek CORS yapılandırması gerekmez.

@@ -25,6 +25,8 @@
 - [x] Web üzerinden model seçme, yükleme ve indirme
 - [x] Model indirme ilerleme takibi
 - [x] LM Studio çalışma zamanını yerel CLI ile otomatik başlatma
+- [x] Web Serial API ile Arduino Uno + AD8232 canlı EKG bağlantısı
+- [x] Yaklaşık BPM ve ritim özetini yerel AI sohbetine bağlam olarak ekleme
 
 ## Sonraki Faz: Veri ve Ölçüm
 

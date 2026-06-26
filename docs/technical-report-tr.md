@@ -62,6 +62,8 @@ Başarı ölçütü yalnızca modelden yanıt almak değil; model bulunmadığı
 - Model durum endpointi
 - Model kataloğu, aktif model seçimi ve model yükleme
 - Web üzerinden model indirme ve ilerleme takibi
+- Web Serial API ile Arduino Uno + AD8232 canlı EKG bağlantısı
+- Yaklaşık BPM ve ritim özetini yerel sohbet modeline bağlam olarak ekleme
 - Otomatik kural tabanlı fallback
 
 ### Bu sürümde bulunmayanlar
@@ -244,10 +246,13 @@ uygulama giriş noktasını bulabilmesi için gereklidir.
 
 API ile birlikte sunulan yerel demo ekranını içerir:
 
-- `index.html`: Analiz formunu, model yöneticisini, örnek metinleri ve sonuç bölgelerini tanımlar.
-- `styles.css`: Mobil uyumlu görünümü, model kartlarını, odak stillerini ve kriz vurgusunu sağlar.
-- `app.js`: Analiz ve model yönetimi API isteklerini gönderir, indirme ilerlemesini
-  izler ve sonuçları güvenli biçimde DOM üzerinde gösterir.
+- `index.html`: Analiz formunu, model yöneticisini, EKG bağlantı panelini, yerel sohbet
+  alanını, örnek metinleri ve sonuç bölgelerini tanımlar.
+- `styles.css`: Mobil uyumlu görünümü, model kartlarını, EKG grafiğini, sohbet mesajlarını,
+  odak stillerini ve kriz vurgusunu sağlar.
+- `app.js`: Analiz, sohbet ve model yönetimi API isteklerini gönderir; Web Serial API ile
+  AD8232/Arduino çıktısını okur; indirme ilerlemesini, canlı EKG grafiğini ve sonuçları
+  güvenli biçimde DOM üzerinde gösterir.
 
 JavaScript kullanıcı veya model metnini HTML olarak eklemez; `textContent`
 kullanır. Böylece yanıt içeriğinin çalıştırılabilir işaretlemeye dönüşmesi önlenir.
@@ -273,6 +278,16 @@ Analizin dışarıya açık sonucudur:
 - `Model`: Kullanılan ya da denenmiş yerel modelin adı
 - `ModelScores`: Model kullanıldıysa 0-1 aralığındaki duygu skorları
 - `FallbackReason`: Model yerine kurallara dönülme nedenini sabit bir kodla açıklar
+
+### `Features/EmotionAnalysis/Contracts/ChatRequest.cs`
+
+Sade sohbet endpointinin dış sözleşmesidir. `UserText` kullanıcının normal sohbet
+mesajını, `History` önceki kullanıcı/asistan mesajlarını, `HeartContext` ise web
+arayüzünün AD8232/Arduino üzerinden çıkardığı isteğe bağlı kalp ritmi özetini taşır.
+
+`HeartContext`; yaklaşık `Bpm`, ritim etiketi, sinyal kalitesi, elektrot teması,
+örnek sayısı, ortalama ham değer ve ölçüm zamanını içerir. Bu alan tıbbi karar için
+değil, yerel modelin konuşma tonunu daha dikkatli kurabilmesi için kullanılır.
 
 ### `Features/EmotionAnalysis/Services/IEmotionAnalysisService.cs`
 
@@ -360,6 +375,13 @@ döndürür. Analizi kendisi yapmaz; servise iletir.
 
 Endpoint metadata'sı Swagger'da özet, açıklama, kabul edilen gövde ve olası HTTP
 yanıtlarını gösterir.
+
+### `Features/EmotionAnalysis/Endpoints/ChatEndpoints.cs`
+
+`POST /api/chat` endpointini tanımlar. Bu endpoint normal sohbet için kullanılır;
+duygu analizi raporu üretmez. En fazla 2.000 karakterlik kullanıcı mesajını kabul
+eder, sohbet geçmişini servise iletir ve varsa `HeartContext` alanını yerel model
+promptuna güvenli bağlam olarak ekler.
 
 ### `Infrastructure/Health/HealthEndpointExtensions.cs`
 
@@ -761,6 +783,14 @@ Web demo:
 http://localhost:5019
 ```
 
+EKG destekli sohbet demosu için:
+
+1. Arduino Uno + AD8232 modülünü bilgisayara bağla.
+2. Web demo ekranındaki **Arduino'ya bağlan** düğmesine bas.
+3. Tarayıcı izin penceresinde Arduino seri portunu seç.
+4. Elektrotlar bağlı değilse `!` veya temas yok uyarısı normal kabul edilir.
+5. Canlı BPM/ritim özeti oluştuğunda sohbet kutusuna normal mesaj yaz.
+
 Swagger:
 
 ```text
@@ -843,6 +873,8 @@ darklove.cmd -Once "Naber, nasıl gidiyor?"
 - İlk model yüklemesi ve düşük donanımda çıkarım yavaş olabilir.
 - Fallback yalnızca tanımlı Türkçe ifadeleri tanır.
 - Kriz kontrolü tüm olası risk ifadelerini kapsamaz.
+- AD8232/Arduino ölçümü elektrot temasına, kablolamaya ve örnekleme koduna bağlıdır;
+  tıbbi teşhis veya klinik izleme amacıyla kullanılamaz.
 - Üretim kullanımı için uzman değerlendirmesi ve daha kapsamlı güvenlik
   politikaları gerekir.
 

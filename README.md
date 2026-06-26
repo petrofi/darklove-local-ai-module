@@ -19,6 +19,8 @@ model kullanılamıyorsa sistem açıklanabilir kural tabanlı analize geri dön
 - Bilgisayardaki LLM'leri web ekranında listeler ve aktif modeli değiştirebilir.
 - Model kataloğu kimliği veya Hugging Face bağlantısıyla indirme başlatabilir.
 - LM Studio indirmelerinde boyut, hız ve yüzde ilerlemesini gösterir.
+- Web arayüzünde Arduino Uno + AD8232 modülünden Web Serial API ile canlı EKG verisi okuyabilir.
+- Yaklaşık BPM, ritim durumu ve sinyal kalitesini hesaplayıp yerel sohbet modeline bağlam olarak ekleyebilir.
 - Model yanıtını JSON şemasıyla sınırlar ve uygulama tarafında doğrular.
 - Model kapalıysa veya hata verirse kural tabanlı fallback kullanır.
 - Kriz ifadelerinde modeli çağırmadan güvenli destek ve `112` yönlendirmesi yapar.
@@ -29,7 +31,7 @@ model kullanılamıyorsa sistem açıklanabilir kural tabanlı analize geri dön
 - Kullanıcı metnini saklamaz veya loglamaz.
 - Kurulum gerektirmeyen Türkçe web demo ekranı içerir.
 - ProblemDetails, health check, model status, OpenAPI ve Swagger UI içerir.
-- Model, fallback, güvenlik, web arayüzü ve HTTP davranışlarını kapsayan 38 test içerir.
+- Model, fallback, güvenlik, web arayüzü, EKG bağlamı ve HTTP davranışlarını kapsayan 46 test içerir.
 
 ## Teknolojiler
 
@@ -39,6 +41,7 @@ model kullanılamıyorsa sistem açıklanabilir kural tabanlı analize geri dön
 - `IHttpClientFactory`
 - HTML, CSS ve JavaScript ile aynı API içinde sunulan demo arayüzü
 - OpenAPI ve Swagger UI
+- Web Serial API ile tarayıcıdan yerel Arduino seri port erişimi
 - xUnit ve `WebApplicationFactory`
 - GitHub Actions
 
@@ -82,6 +85,26 @@ $env:LocalModel__Model = "qwen3:4b"
 ```
 
 Kullanılacak modelin lisansını proje gereksinimlerine göre ayrıca kontrol et.
+
+## AD8232 / Arduino ile EKG Destekli Sohbet
+
+Web arayüzünde **Kalp ritmine duyarlı yerel sohbet** bölümü vardır. Bu bölüm,
+ek sunucu paketi kurmadan tarayıcının Web Serial API özelliğiyle Arduino seri
+portuna bağlanır.
+
+Kullanım akışı:
+
+1. Arduino Uno ve AD8232 modülünü bilgisayara bağla.
+2. AD8232 elektrotları insana bağlı değilse `!` çıktısı veya temas uyarısı normaldir.
+3. `http://localhost:5019` adresinde **Arduino'ya bağlan** düğmesine bas.
+4. Açılan tarayıcı penceresinde Arduino portunu seç. Bu bilgisayarda port `COM3` olarak görülmüştü.
+5. Sayfa canlı sinyali, yaklaşık BPM değerini, ritim durumunu ve sinyal kalitesini gösterir.
+6. **Sohbet cevaplarında kalp ritmi bağlamını kullan** açıkken yerel model, bu ölçümü sohbet bağlamı olarak dikkate alır.
+
+Bu özellik tıbbi teşhis üretmez. AD8232 hobi/prototip modülüdür; ölçüm kalitesi
+elektrot temasına, kablolamaya ve örnekleme koduna bağlıdır. Göğüs ağrısı,
+bayılma, nefes darlığı veya hayati risk gibi durumlarda uygulama yerine 112
+ve profesyonel sağlık desteği kullanılmalıdır.
 
 ## API'yi Çalıştırma
 

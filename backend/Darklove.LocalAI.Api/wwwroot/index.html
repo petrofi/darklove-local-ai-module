@@ -7,8 +7,8 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
   <title>Darklove Local AI</title>
-  <link rel="stylesheet" href="/styles.css?v=3">
-  <script src="/app.js?v=3" defer></script>
+  <link rel="stylesheet" href="/styles.css?v=4">
+  <script src="/app.js?v=4" defer></script>
 </head>
 <body>
   <div class="page-shell">
@@ -41,6 +41,111 @@
         <div class="privacy-note">
           <span class="privacy-icon" aria-hidden="true">01</span>
           <span>Metin saklanmaz, veritabanına yazılmaz ve uygulama loglarına eklenmez.</span>
+        </div>
+      </section>
+
+      <section class="biochat-section" aria-labelledby="biochat-title">
+        <div class="biochat-heading">
+          <div>
+            <p class="section-label">AD8232 / Arduino</p>
+            <h2 id="biochat-title">Kalp ritmine duyarlı yerel sohbet</h2>
+            <p>
+              Arduino Uno ve AD8232 modülü bağlıysa tarayıcıdan seri portu seç,
+              canlı sinyali izle ve yerel modelle ritim bağlamını dikkate alan
+              sade bir sohbet başlat.
+            </p>
+          </div>
+          <div class="biochat-note">
+            Tıbbi teşhis aracı değildir. Göğüs ağrısı, bayılma veya nefes darlığı
+            gibi acil belirtilerde 112 aranmalıdır.
+          </div>
+        </div>
+
+        <div class="biochat-grid">
+          <article class="ecg-card">
+            <div class="ecg-card-heading">
+              <div>
+                <h3>Canlı EKG bağlantısı</h3>
+                <p id="serial-support-note">Tarayıcı seri port desteği kontrol ediliyor.</p>
+              </div>
+              <span id="ecg-status-pill" class="ecg-status-pill waiting">Beklemede</span>
+            </div>
+
+            <div class="ecg-controls">
+              <label for="ecg-baud-rate">Baud</label>
+              <select id="ecg-baud-rate">
+                <option value="9600" selected>9600</option>
+                <option value="115200">115200</option>
+              </select>
+              <button id="connect-ecg-button" class="primary-button compact-primary" type="button">
+                Arduino'ya bağlan
+              </button>
+              <button id="disconnect-ecg-button" class="secondary-button compact-secondary" type="button" disabled>
+                Bağlantıyı kes
+              </button>
+            </div>
+
+            <canvas id="ecg-canvas" width="720" height="220" aria-label="Canlı EKG sinyali"></canvas>
+
+            <div class="ecg-metrics">
+              <div>
+                <span>BPM</span>
+                <strong id="ecg-heart-rate">--</strong>
+              </div>
+              <div>
+                <span>Ritim</span>
+                <strong id="ecg-rhythm-label">Ölçüm bekleniyor</strong>
+              </div>
+              <div>
+                <span>Sinyal</span>
+                <strong id="ecg-signal-quality">Bekleniyor</strong>
+              </div>
+              <div>
+                <span>Örnek</span>
+                <strong id="ecg-sample-count">0</strong>
+              </div>
+            </div>
+
+            <p id="ecg-status-text" class="ecg-status-text">
+              Bağlan düğmesine basınca tarayıcı Arduino portunu seçmeni isteyecek.
+            </p>
+
+            <label class="ecg-context-toggle">
+              <input id="use-ecg-context" type="checkbox" checked>
+              Sohbet cevaplarında kalp ritmi bağlamını kullan
+            </label>
+          </article>
+
+          <article class="chat-card">
+            <div class="chat-card-heading">
+              <div>
+                <h3>Yerel AI sohbet</h3>
+                <p>Duygu raporu değil, normal sohbet. EKG bağlamı açıksa model cevabını daha sakin ve dikkatli kurar.</p>
+              </div>
+              <button id="clear-chat-button" class="secondary-button compact-secondary" type="button">
+                Sohbeti temizle
+              </button>
+            </div>
+
+            <div id="chat-log" class="chat-log" aria-live="polite">
+              <div class="chat-message assistant">
+                Merhaba. Arduino bağlıysa EKG bölümünden portu seçebilirsin; sonra burada normal şekilde konuşabiliriz.
+              </div>
+            </div>
+
+            <form id="chat-form" class="chat-form">
+              <label class="sr-only" for="chat-text">Sohbet mesajı</label>
+              <textarea
+                id="chat-text"
+                rows="3"
+                maxlength="2000"
+                placeholder="Örneğin: Ritmim biraz yükseldi, sakinleşmek için ne yapabilirim?"></textarea>
+              <button id="send-chat-button" class="primary-button" type="submit">
+                <span>Gönder</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+              </button>
+            </form>
+          </article>
         </div>
       </section>
 
